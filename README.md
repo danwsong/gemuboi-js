@@ -3,4 +3,4 @@ A fairly accurate Game Boy emulator you can run in your browser, written in pure
 
 You can try it out [here](gemuboi.me).
 
-![image](media/clip.gif)
+<img src="media/clip.gif" width="480" />
