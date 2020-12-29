@@ -1,7 +1,7 @@
 const COLORS = ['#000000', '#555555', '#AAAAAA', '#FFFFFF'];
+const MARGIN = 16;
 const WIDTH = 160;
 const HEIGHT = 144;
-const SCALE = 4;
 
 class Cartridge {
     constructor(gb) {
@@ -213,7 +213,6 @@ class Cartridge {
 
     load(file) {
         this.title = new TextDecoder('ascii').decode(file.slice(0x134, 0x13f));
-        document.title = this.title;
         this.cartridgeType = file[0x147];
         const romSize = 32768 << file[0x148];
         if (file.length != romSize) {
@@ -465,11 +464,7 @@ class Display {
     }
 
     writePixel(y, x, value) {
-        for (let _y = 0; _y < SCALE; _y++) {
-            for (let _x = 0; _x < SCALE; _x++) {
-                pixels[(y * SCALE + _y) * WIDTH * SCALE + (x * SCALE + _x)] = this.PALETTE[value];
-            }
-        }
+        pixels[(y + MARGIN) * (WIDTH + 2 * MARGIN) + (x + MARGIN)] = this.PALETTE[value];
     }
 
     renderLine() {
@@ -1569,8 +1564,8 @@ class GameBoy {
 }
 
 const canvas = document.getElementById('canvas');
-canvas.width = WIDTH * SCALE;
-canvas.height = HEIGHT * SCALE;
+canvas.width = WIDTH + 2 * MARGIN;
+canvas.height = HEIGHT + 2 * MARGIN;
 const ctx = canvas.getContext('2d');
 const imageData = ctx.createImageData(canvas.width, canvas.height);
 const pixels = new Uint32Array(imageData.data.buffer);
@@ -1607,7 +1602,7 @@ document.getElementById('rom').onchange = e => {
         gb.cartridge.load(file);
         gb.reset();
         window.clearInterval(intervalId);
-        intervalId = window.setInterval(update, 17);
+        intervalId = window.setInterval(update);
     };
 };
 

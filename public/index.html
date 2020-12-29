@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title>gemuboi</title>
         <link rel="stylesheet" href="main.css" />
     </head>
     <body>
-        <div id="content">
+        <div class="content">
             <canvas id="canvas"></canvas>
-            <input type="file" id="rom" accept=".gb, .gbc" />
+            <label for="rom">Load ROM</label>
+            <input type="file" id="rom" accept=".gb, .gbc" hidden />
         </div>
         <script src="main.js"></script>
     </body>
