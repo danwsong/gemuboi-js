@@ -22,9 +22,10 @@ label {
     cursor: pointer;
     background-color: #ad2921;
     color: #ffefce;
-    padding: 1rem;
+    padding: 1rem 2rem 1rem 2rem;
     font-family: monospace;
     font-size: 1.5rem;
+    border-radius: 0.5rem;
     transition: 0.25s;
 }
 
