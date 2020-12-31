@@ -16,6 +16,8 @@ body {
 canvas {
     margin: 2rem;
     width: 50vh;
+    border: solid 0.5rem #ad2921;
+    border-radius: 0.5rem;
 }
 
 label {
