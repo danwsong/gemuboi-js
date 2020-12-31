@@ -55,7 +55,7 @@ class Sound {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        
+
         this.cycles = 0;
         this.frame = 0;
 
@@ -481,12 +481,14 @@ class Sound {
                 this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * AUDIO_CYCLES_PER_PULSE;
                 this.channel1Index = (this.channel1Index + 1) % 8;
             }
-            const signal = PULSE_TABLE[this.channel1Duty][this.channel1Index] * this.channel1Volume / 15 * 2 - 1;
-            if (this.channel1LeftEnable) {
-                left += signal;
-            }
-            if (this.channel1RightEnable) {
-                right += signal;
+            if (this.channel1Volume != 0) {
+                const signal = PULSE_TABLE[this.channel1Duty][this.channel1Index] * this.channel1Volume / 15 * 2 - 1;
+                if (this.channel1LeftEnable) {
+                    left += signal;
+                }
+                if (this.channel1RightEnable) {
+                    right += signal;
+                }
             }
         }
         if (this.channel2Enable) {
@@ -495,12 +497,14 @@ class Sound {
                 this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * AUDIO_CYCLES_PER_PULSE;
                 this.channel2Index = (this.channel2Index + 1) % 8;
             }
-            const signal = PULSE_TABLE[this.channel2Duty][this.channel2Index] * this.channel2Volume / 15 * 2 - 1;
-            if (this.channel2LeftEnable) {
-                left += signal;
-            }
-            if (this.channel2RightEnable) {
-                right += signal;
+            if (this.channel2Volume != 0) {
+                const signal = PULSE_TABLE[this.channel2Duty][this.channel2Index] * this.channel2Volume / 15 * 2 - 1;
+                if (this.channel2LeftEnable) {
+                    left += signal;
+                }
+                if (this.channel2RightEnable) {
+                    right += signal;
+                }
             }
         }
         if (this.channel3Enable) {
@@ -509,12 +513,14 @@ class Sound {
                 this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * AUDIO_CYCLES_PER_WAVE;
                 this.channel3Index = (this.channel3Index + 1) % 32;
             }
-            const signal = (this.channel3WaveTable[this.channel3Index] >> VOLUME_SHIFT[this.channel3Volume]) / 15 * 2 - 1;
-            if (this.channel3LeftEnable) {
-                left += signal;
-            }
-            if (this.channel3RightEnable) {
-                right += signal;
+            if (this.channel3Volume != 0) {
+                const signal = (this.channel3WaveTable[this.channel3Index] >> VOLUME_SHIFT[this.channel3Volume]) / 15 * 2 - 1;
+                if (this.channel3LeftEnable) {
+                    left += signal;
+                }
+                if (this.channel3RightEnable) {
+                    right += signal;
+                }
             }
         }
         if (this.channel4Enable) {
@@ -523,17 +529,19 @@ class Sound {
                 this.channel4FrequencyCounter = DIVISION_RATIOS[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
                 this.genLFSR();
             }
-            const signal = (~this.channel4LFSR & 0b1) * this.channel4Volume / 15 * 2 - 1;
-            if (this.channel4LeftEnable) {
-                left += signal;
-            }
-            if (this.channel4RightEnable) {
-                right += signal;
+            if (this.channel4Volume != 0) {
+                const signal = (~this.channel4LFSR & 0b1) * this.channel4Volume / 15 * 2 - 1;
+                if (this.channel4LeftEnable) {
+                    left += signal;
+                }
+                if (this.channel4RightEnable) {
+                    right += signal;
+                }
             }
         }
         left *= (this.leftVolume + 1) / 8;
         right *= (this.rightVolume + 1) / 8;
-        
+
         const index = Math.floor(this.cycles / AUDIO_CYCLES_PER_SAMPLE) % AUDIO_BUFFER_SAMPLES;
         this.bufferLeft[index] += left / SOUND_CHANNEL_COUNT / AUDIO_CYCLES_PER_SAMPLE;
         this.bufferRight[index] += right / SOUND_CHANNEL_COUNT / AUDIO_CYCLES_PER_SAMPLE;
@@ -549,6 +557,10 @@ class Sound {
             bufferSource.connect(audioCtx.destination);
             bufferSource.start(this.nextPush);
             this.nextPush += AUDIO_BUFFER_DURATION;
+
+            console.log(this.bufferLeft.reduce((a, b) => {
+                return Math.max(a, b);
+            }));
 
             this.buffer = audioCtx.createBuffer(2, AUDIO_BUFFER_SAMPLES, AUDIO_SAMPLE_FREQUENCY);
             this.bufferLeft = this.buffer.getChannelData(0);
