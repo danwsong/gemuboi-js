@@ -558,10 +558,6 @@ class Sound {
             bufferSource.start(this.nextPush);
             this.nextPush += AUDIO_BUFFER_DURATION;
 
-            console.log(this.bufferLeft.reduce((a, b) => {
-                return Math.max(a, b);
-            }));
-
             this.buffer = audioCtx.createBuffer(2, AUDIO_BUFFER_SAMPLES, AUDIO_SAMPLE_FREQUENCY);
             this.bufferLeft = this.buffer.getChannelData(0);
             this.bufferRight = this.buffer.getChannelData(1);
