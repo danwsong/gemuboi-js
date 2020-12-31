@@ -1,9 +1,42 @@
-const COLORS = ['#000000', '#555555', '#AAAAAA', '#FFFFFF'];
-const MARGIN = 16;
-const WIDTH = 160;
-const HEIGHT = 144;
-const CANVAS_WIDTH = WIDTH + 2 * MARGIN;
-const CANVAS_HEIGHT = HEIGHT + 2 * MARGIN;
+const MILLISECONDS = 1000;
+const DISPLAY_WIDTH = 160;
+const DISPLAY_HEIGHT = 144;
+const CANVAS_MARGIN = 16;
+const CANVAS_WIDTH = DISPLAY_WIDTH + 2 * CANVAS_MARGIN;
+const CANVAS_HEIGHT = DISPLAY_HEIGHT + 2 * CANVAS_MARGIN;
+const CPU_FREQUENCY = 1048576;
+const DISPLAY_FREQUENCY = 4194304;
+const DISPLAY_CYCLES = DISPLAY_FREQUENCY / CPU_FREQUENCY;
+const DISPLAY_CYCLES_PER_LINE = 456;
+const LINES_PER_FRAME = 154;
+const CPU_CYCLES_PER_FRAME = DISPLAY_CYCLES_PER_LINE * LINES_PER_FRAME / DISPLAY_CYCLES;
+const FRAME_DURATION = CPU_CYCLES_PER_FRAME / CPU_FREQUENCY;
+const AUDIO_FREQUENCY = 4194304;
+const AUDIO_CYCLES = AUDIO_FREQUENCY / CPU_FREQUENCY;
+const PULSE_FREQUENCY = 1048576;
+const AUDIO_CYCLES_PER_PULSE = AUDIO_FREQUENCY / PULSE_FREQUENCY;
+const WAVE_FREQUENCY = 2097152;
+const AUDIO_CYCLES_PER_WAVE = AUDIO_FREQUENCY / WAVE_FREQUENCY;
+const AUDIO_BUFFER_SAMPLES = 4096;
+const AUDIO_SAMPLE_FREQUENCY = 65536;
+const AUDIO_BUFFER_DURATION = AUDIO_BUFFER_SAMPLES / AUDIO_SAMPLE_FREQUENCY;
+const AUDIO_FRAME_FREQUENCY = 512;
+const AUDIO_CYCLES_PER_AUDIO_FRAME = AUDIO_FREQUENCY / AUDIO_FRAME_FREQUENCY;
+const AUDIO_CYCLES_PER_SAMPLE = AUDIO_FREQUENCY / AUDIO_SAMPLE_FREQUENCY;
+const AUDIO_CYCLES_PER_BUFFER = AUDIO_CYCLES_PER_SAMPLE * AUDIO_BUFFER_SAMPLES;
+const SOUND_CHANNEL_COUNT = 4;
+const PULSE_TABLE = [
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+];
+const VOLUME_SHIFT = [
+    4, 0, 1, 2,
+];
+const DIVISION_RATIOS = [
+    2, 4, 8, 12, 16, 20, 24, 28,
+].map((value => value * AUDIO_CYCLES));
 
 const canvas = document.getElementById('canvas');
 canvas.width = CANVAS_WIDTH;
@@ -16,29 +49,14 @@ class Sound {
     constructor(gb) {
         this.gb = gb;
 
-        this.pulse = [
-            [0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 0],
-        ];
-
-        this.wave = [
+        this.channel3WaveTable = [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
-        ];
-
-        this.volumeShift = [
-            4, 0, 1, 2,
-        ];
-
-        this.divisionRatios = [
-            8, 16, 32, 48, 64, 80, 96, 112,
         ];
         
-        this.clock = 0;
+        this.cycles = 0;
         this.frame = 0;
 
         this.channel1SweepDuration = 0b000;
@@ -139,8 +157,7 @@ class Sound {
 
         this.soundEnable = false;
 
-        this.BUFFER_LENGTH = 4096;
-        this.buffer = audioCtx.createBuffer(2, this.BUFFER_LENGTH, 65536);
+        this.buffer = audioCtx.createBuffer(2, AUDIO_BUFFER_SAMPLES, AUDIO_SAMPLE_FREQUENCY);
         this.bufferLeft = this.buffer.getChannelData(0);
         this.bufferRight = this.buffer.getChannelData(1);
     }
@@ -341,7 +358,7 @@ class Sound {
     set nr52(value) {
         this.soundEnable = (value & 0b10000000) != 0;
         if (!this.soundEnable) {
-            this.clock = 0;
+            this.cycles = 0;
             this.channel1Enable = false;
             this.channel2Enable = false;
             this.channel3Enable = false;
@@ -350,8 +367,8 @@ class Sound {
     }
 
     writeWave(address, value) {
-        this.wave[address * 2] = (value & 0b11110000) >> 4;
-        this.wave[address * 2 + 1] = value & 0b1111;
+        this.channel3WaveTable[address * 2] = (value & 0b11110000) >> 4;
+        this.channel3WaveTable[address * 2 + 1] = value & 0b1111;
     }
 
     genLFSR() {
@@ -415,9 +432,6 @@ class Sound {
                 if (!this.channel1VolumeUp && this.channel1Volume > 0) {
                     this.channel1Volume--;
                 }
-                if (this.channel1Volume == 0) {
-                    this.channel1Enable = false;
-                }
             }
         }
         if (this.channel2Enable && this.channel2EnvelopeDuration != 0) {
@@ -429,9 +443,6 @@ class Sound {
                 }
                 if (!this.channel2VolumeUp && this.channel2Volume > 0) {
                     this.channel2Volume--;
-                }
-                if (this.channel2Volume == 0) {
-                    this.channel2Enable = false;
                 }
             }
         }
@@ -445,15 +456,11 @@ class Sound {
                 if (!this.channel4VolumeUp && this.channel4Volume > 0) {
                     this.channel4Volume--;
                 }
-                if (this.channel4Volume == 0) {
-                    this.channel4Enable = false;
-                }
             }
         }
     }
 
     updateFrequency() {
-        const index = Math.floor(this.clock / 64) % this.BUFFER_LENGTH;
         let left = 0;
         let right = 0;
         if (this.channel1Enable && this.channel1InitialVolume == 0b0000 && !this.channel1VolumeUp) {
@@ -471,10 +478,10 @@ class Sound {
         if (this.channel1Enable) {
             this.channel1FrequencyCounter--;
             if (this.channel1FrequencyCounter == 0) {
-                this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * 4;
+                this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * AUDIO_CYCLES_PER_PULSE;
                 this.channel1Index = (this.channel1Index + 1) % 8;
             }
-            const signal = this.pulse[this.channel1Duty][this.channel1Index] * this.channel1Volume / 15 * 2 - 1;
+            const signal = PULSE_TABLE[this.channel1Duty][this.channel1Index] * this.channel1Volume / 15 * 2 - 1;
             if (this.channel1LeftEnable) {
                 left += signal;
             }
@@ -485,10 +492,10 @@ class Sound {
         if (this.channel2Enable) {
             this.channel2FrequencyCounter--;
             if (this.channel2FrequencyCounter == 0) {
-                this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * 4;
+                this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * AUDIO_CYCLES_PER_PULSE;
                 this.channel2Index = (this.channel2Index + 1) % 8;
             }
-            const signal = this.pulse[this.channel2Duty][this.channel2Index] * this.channel2Volume / 15 * 2 - 1;
+            const signal = PULSE_TABLE[this.channel2Duty][this.channel2Index] * this.channel2Volume / 15 * 2 - 1;
             if (this.channel2LeftEnable) {
                 left += signal;
             }
@@ -499,10 +506,10 @@ class Sound {
         if (this.channel3Enable) {
             this.channel3FrequencyCounter--;
             if (this.channel3FrequencyCounter == 0) {
-                this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * 2;
+                this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * AUDIO_CYCLES_PER_WAVE;
                 this.channel3Index = (this.channel3Index + 1) % 32;
             }
-            const signal = (this.wave[this.channel3Index] >> this.volumeShift[this.channel3Volume]) / 15 * 2 - 1;
+            const signal = (this.channel3WaveTable[this.channel3Index] >> VOLUME_SHIFT[this.channel3Volume]) / 15 * 2 - 1;
             if (this.channel3LeftEnable) {
                 left += signal;
             }
@@ -513,7 +520,7 @@ class Sound {
         if (this.channel4Enable) {
             this.channel4FrequencyCounter--;
             if (this.channel4FrequencyCounter == 0) {
-                this.channel4FrequencyCounter = this.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
+                this.channel4FrequencyCounter = DIVISION_RATIOS[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
                 this.genLFSR();
             }
             const signal = (~this.channel4LFSR & 0b1) * this.channel4Volume / 15 * 2 - 1;
@@ -524,24 +531,26 @@ class Sound {
                 right += signal;
             }
         }
-        left *= (this.leftVolume + 1) / 32;
-        right *= (this.rightVolume + 1) / 32;
-        this.bufferLeft[index] += left / 64;
-        this.bufferRight[index] += right / 64;
+        left *= (this.leftVolume + 1) / 8;
+        right *= (this.rightVolume + 1) / 8;
+        
+        const index = Math.floor(this.cycles / AUDIO_CYCLES_PER_SAMPLE) % AUDIO_BUFFER_SAMPLES;
+        this.bufferLeft[index] += left / SOUND_CHANNEL_COUNT / AUDIO_CYCLES_PER_SAMPLE;
+        this.bufferRight[index] += right / SOUND_CHANNEL_COUNT / AUDIO_CYCLES_PER_SAMPLE;
     }
 
     pushBuffer() {
         const now = audioCtx.currentTime;
-        const nowPlusLatency = now + this.BUFFER_LENGTH / 65536;
+        const nowPlusLatency = now + AUDIO_BUFFER_DURATION;
         this.nextPush = (this.nextPush || nowPlusLatency);
         if (this.nextPush >= now) {
             const bufferSource = audioCtx.createBufferSource();
             bufferSource.buffer = this.buffer;
             bufferSource.connect(audioCtx.destination);
             bufferSource.start(this.nextPush);
-            this.nextPush += this.BUFFER_LENGTH / 65536;
+            this.nextPush += AUDIO_BUFFER_DURATION;
 
-            this.buffer = audioCtx.createBuffer(2, this.BUFFER_LENGTH, 65536);
+            this.buffer = audioCtx.createBuffer(2, AUDIO_BUFFER_SAMPLES, AUDIO_SAMPLE_FREQUENCY);
             this.bufferLeft = this.buffer.getChannelData(0);
             this.bufferRight = this.buffer.getChannelData(1);
         } else {
@@ -550,13 +559,13 @@ class Sound {
     }
 
     cycle() {
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < AUDIO_CYCLES; i++) {
             if (this.soundEnable) {
                 if (this.channel1Trigger) {
                     this.channel1Trigger = false;
                     this.channel1Enable = true;
                     this.channel1LengthCounter = 64 - this.channel1Length;
-                    this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * 4;
+                    this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * AUDIO_CYCLES_PER_PULSE;
                     this.channel1SweepFrequency = this.channel1Frequency;
                     this.channel1SweepCounter = this.channel1SweepDuration;
                     this.channel1EnvelopeCounter = this.channel1EnvelopeDuration;
@@ -567,7 +576,7 @@ class Sound {
                     this.channel2Trigger = false;
                     this.channel2Enable = true;
                     this.channel2LengthCounter = 64 - this.channel2Length;
-                    this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * 4;
+                    this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * AUDIO_CYCLES_PER_PULSE;
                     this.channel2EnvelopeCounter = this.channel2EnvelopeDuration;
                     this.channel2Volume = this.channel2InitialVolume;
                     this.channel2Index = 0;
@@ -576,24 +585,24 @@ class Sound {
                     this.channel3Trigger = false;
                     this.channel3Enable = true;
                     this.channel3LengthCounter = 256 - this.channel3Length;
-                    this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * 2;
+                    this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * AUDIO_CYCLES_PER_WAVE;
                     this.channel3Index = 0;
                 }
                 if (this.channel4Trigger) {
                     this.channel4Trigger = false;
                     this.channel4Enable = true;
                     this.channel4LengthCounter = 64 - this.channel4Length;
-                    this.channel4FrequencyCounter = this.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
+                    this.channel4FrequencyCounter = DIVISION_RATIOS[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
                     this.channel4EnvelopeCounter = this.channel4EnvelopeDuration;
                     this.channel4Volume = this.channel4InitialVolume;
                     this.channel4LFSR = 0b111111111111111;
                 }
                 this.updateFrequency();
-                this.clock++;
-                if (this.clock % (this.BUFFER_LENGTH * 64) == 0) {
+                this.cycles++;
+                if (this.cycles % AUDIO_CYCLES_PER_BUFFER == 0) {
                     this.pushBuffer();
                 }
-                if (this.clock % 8192 == 0) {
+                if (this.cycles % AUDIO_CYCLES_PER_AUDIO_FRAME == 0) {
                     this.frame++;
                     switch (this.frame % 8) {
                         case 2:
@@ -605,6 +614,7 @@ class Sound {
                             break;
                         case 7:
                             this.updateVolume();
+                            break;
                     }
                 }
             }
@@ -1004,7 +1014,7 @@ class Display {
         this.wy = 0;
         this.wx = 0;
 
-        this.dot = 0;
+        this.cycles = 0;
         this.windowLine = 0;
 
         this.VRAM = new Uint8Array(0x2000);
@@ -1076,12 +1086,12 @@ class Display {
     }
 
     writePixel(y, x, value) {
-        this.pixels[(y + MARGIN) * CANVAS_WIDTH + (x + MARGIN)] = this.PALETTE[value];
+        this.pixels[(y + CANVAS_MARGIN) * CANVAS_WIDTH + (x + CANVAS_MARGIN)] = this.PALETTE[value];
     }
 
     renderLine() {
-        const bg = new Uint8Array(WIDTH);
-        for (let x = 0; x < WIDTH; x++) {
+        const bg = new Uint8Array(DISPLAY_WIDTH);
+        for (let x = 0; x < DISPLAY_WIDTH; x++) {
             if (this.bgOn) {
                 if (this.windowOn && this.ly >= this.wy && x >= this.wx - 7) {
                     const tilemapY = (this.windowLine >> 3) & 0b11111;
@@ -1150,7 +1160,7 @@ class Display {
                 const xFlip = (attributes & 0b100000) != 0;
                 const paletteNumber = (attributes & 0b10000) >> 4;
 
-                if (objX != 0 && objX < WIDTH + 8) {
+                if (objX != 0 && objX < DISPLAY_WIDTH + 8) {
                     let tileY = this.ly - objY + 16;
                     if (yFlip) {
                         tileY = (this.objHeight ? 15 : 7) - tileY;
@@ -1158,7 +1168,7 @@ class Display {
                     const tileAddress = (tile << 4) | (tileY << 1);
 
                     const minX = (objX > 8) ? objX - 8 : 0;
-                    const maxX = (objX < WIDTH) ? objX : WIDTH;
+                    const maxX = (objX < DISPLAY_WIDTH) ? objX : DISPLAY_WIDTH;
                     const beginX = xFlip ? maxX - 1 : minX;
                     const endX = xFlip ? minX - 1 : maxX;
                     const incX = xFlip ? -1 : 1;
@@ -1180,30 +1190,30 @@ class Display {
 
     cycle() {
         this.lycMatch = this.ly == this.lyc;
-        if (this.lycMatch && this.lycMatchInt && this.dot == 0) {
+        if (this.lycMatch && this.lycMatchInt && this.cycles == 0) {
             this.gb.requestInterrupt(this.gb.STAT);
         }
 
         if (this.lcdOn) {
-            if (this.ly < HEIGHT) {
-                if (this.dot == 0) {
+            if (this.ly < DISPLAY_HEIGHT) {
+                if (this.cycles == 0) {
                     if (this.mode10Int) {
                         this.gb.requestInterrupt(this.gb.STAT);
                     }
                     this.mode = this.SEARCH_OAM;
                 }
-                if (this.dot == 80) {
+                if (this.cycles == 80) {
                     this.mode = this.TRANSFER;
                 }
-                if (this.dot == 248) {
-                    if (this.dot == 248 && this.mode00Int) {
+                if (this.cycles == 248) {
+                    if (this.cycles == 248 && this.mode00Int) {
                         this.gb.requestInterrupt(this.gb.STAT);
                     }
                     this.mode = this.HBLANK;
                     this.renderLine();
                 }
             }
-            if (this.ly == HEIGHT && this.dot == 0) {
+            if (this.ly == DISPLAY_HEIGHT && this.cycles == 0) {
                 if (this.mode01Int) {
                     this.gb.requestInterrupt(this.gb.STAT);
                 }
@@ -1212,14 +1222,14 @@ class Display {
                 this.renderFrame();
             }
 
-            this.dot += 4;
-            if (this.dot == 456) {
-                this.dot = 0;
+            this.cycles += 4;
+            if (this.cycles == DISPLAY_CYCLES_PER_LINE) {
+                this.cycles = 0;
                 if (this.windowOn && this.ly >= this.wy && this.wx <= 166) {
                     this.windowLine++;
                 }
                 this.ly++;
-                if (this.ly == 154) {
+                if (this.ly == LINES_PER_FRAME) {
                     this.ly = 0;
                     this.windowLine = 0;
                 }
@@ -2254,11 +2264,11 @@ let running = false;
 let intervalId;
 
 function update() {
-    while (cycles < 17556) {
+    while (cycles < CPU_CYCLES_PER_FRAME) {
         cycles += gb.cycle();
     }
-    cycles -= 17556;
-    next += 17556 / 1048576 * 1000;
+    cycles -= CPU_CYCLES_PER_FRAME;
+    next += FRAME_DURATION * MILLISECONDS;
     intervalId = setTimeout(update, next - performance.now());
 }
 
@@ -2272,14 +2282,14 @@ document.onvisibilitychange = () => {
     if (running) {
         if (document.hidden) {
             clearTimeout(intervalId);
-            paused = true;
             audioCtx.suspend();
+            paused = true;
         } else {
             if (paused) {
                 paused = false;
+                audioCtx.resume();
                 next = performance.now();
                 update();
-                audioCtx.resume();
             }
         }
     }
