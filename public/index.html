@@ -7,9 +7,56 @@
     </head>
     <body>
         <div class="content">
-            <canvas id="canvas"></canvas>
-            <label for="rom">Load ROM</label>
-            <input type="file" id="rom" accept=".gb, .gbc" hidden />
+            <div class="left-pane">
+                <canvas id="canvas"></canvas>
+                <label for="rom">Load ROM</label>
+                <input type="file" id="rom" accept=".gb, .gbc" hidden />
+            </div>
+            <div class="right-pane">
+                <h1>Controls:</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Button</th>
+                            <th>Key</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Start</td>
+                            <td>Enter</td>
+                        </tr>
+                        <tr>
+                            <td>Select</td>
+                            <td>Right shift</td>
+                        </tr>
+                        <tr>
+                            <td>A</td>
+                            <td>X</td>
+                        </tr>
+                        <tr>
+                            <td>B</td>
+                            <td>Z</td>
+                        </tr>
+                        <tr>
+                            <td>Up</td>
+                            <td>Up arrow</td>
+                        </tr>
+                        <tr>
+                            <td>Down</td>
+                            <td>Down arrow</td>
+                        </tr>
+                        <tr>
+                            <td>Left</td>
+                            <td>Left arrow</td>
+                        </tr>
+                        <tr>
+                            <td>Right</td>
+                            <td>Right arrow</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         <script src="main.js"></script>
     </body>

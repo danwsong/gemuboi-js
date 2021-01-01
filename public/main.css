@@ -9,15 +9,30 @@ body {
 
 .content {
     display: flex;
+    flex-direction: row;
+}
+
+.left-pane {
+    display: flex;
     align-items: center;
     flex-direction: column;
+    margin: 2rem;
+}
+
+.right-pane {
+    margin: 2rem;
 }
 
 canvas {
-    margin: 2rem;
     width: 50vh;
-    border: solid 0.5rem #ad2921;
-    border-radius: 0.5rem;
+    border: solid 0.25rem #ad2921;
+    margin-bottom: 2rem;
+}
+
+p {
+    color: #ad2921;
+    font-family: monospace;
+    font-size: 1.5rem;
 }
 
 label {
@@ -25,12 +40,30 @@ label {
     background-color: #ad2921;
     color: #ffefce;
     padding: 1rem 2rem 1rem 2rem;
-    font-family: monospace;
+    font-family: sans-serif;
     font-size: 1.5rem;
-    border-radius: 0.5rem;
     transition: 0.25s;
 }
 
 label:hover {
     background-color: #de944a;
+}
+
+h1, p, th, td {
+    font-family: sans-serif;
+    color: #ad2921;
+}
+
+h1 {
+    margin-bottom: 1rem;
+}
+
+table, th, td {
+    border: #ad2921 solid 0.25rem;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
 }
