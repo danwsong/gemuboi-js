@@ -423,7 +423,7 @@ class Sound {
             this.channel2Enable = false;
         }
         if (this.channel3Enable && !this.channel3Play) {
-            this.channel4Enable = false;
+            this.channel3Enable = false;
         }
         if (this.channel4Enable && this.channel4InitialVolume == 0b0000 && !this.channel4VolumeUp) {
             this.channel4Enable = false;
@@ -520,8 +520,8 @@ class Sound {
     }
 
     cycle() {
-        for (let i = 0; i < Sound.cyclesPerCPUCycle; i++) {
-            if (this.soundEnable) {
+        if (this.soundEnable) {
+            for (let i = 0; i < Sound.cyclesPerCPUCycle; i++) {
                 if (this.channel1Trigger) {
                     this.channel1Trigger = false;
                     this.channel1Enable = true;
