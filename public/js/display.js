@@ -71,6 +71,10 @@ class Display {
         this.mode00Int = (value & 0b00001000) != 0;
     }
 
+    get dma() {
+        
+    }
+
     set dma(value) {
         const h = value << 8;
         for (let l = 0; l < this.oam.length; l++) {
