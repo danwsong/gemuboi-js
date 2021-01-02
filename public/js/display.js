@@ -273,8 +273,11 @@ Display.linesPerFrame = 154;
 Display.cyclesPerCPUCycle = Display.frequency / GameBoy.frequency;
 Display.cpuCyclesPerFrame = Display.cyclesPerLine * Display.linesPerFrame / Display.cyclesPerCPUCycle;
 Display.frameDuration = Display.cpuCyclesPerFrame / GameBoy.frequency;
+// Display.palette = [
+//     0xffceefff, 0xff4a94de, 0xff2129ad, 0xff521931,
+// ];
 Display.palette = [
-    0xffceefff, 0xff4a94de, 0xff2129ad, 0xff521931,
+    0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000,
 ];
 Display.modes = {
     hblank: 0b00,
@@ -288,4 +291,6 @@ Display.canvasHeight = Display.height + 2 * Display.canvasMargin;
 Display.canvas = document.getElementById('canvas');
 Display.canvas.width = Display.canvasWidth;
 Display.canvas.height = Display.canvasHeight;
+Display.canvas.style.width = Display.canvasWidth * 2 + 'px';
+Display.canvas.style.height = Display.canvasHeight * 2 + 'px';
 Display.ctx = Display.canvas.getContext('2d');
