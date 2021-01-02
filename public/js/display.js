@@ -72,7 +72,7 @@ class Display {
     }
 
     get dma() {
-        
+
     }
 
     set dma(value) {
@@ -273,9 +273,6 @@ Display.linesPerFrame = 154;
 Display.cyclesPerCPUCycle = Display.frequency / GameBoy.frequency;
 Display.cpuCyclesPerFrame = Display.cyclesPerLine * Display.linesPerFrame / Display.cyclesPerCPUCycle;
 Display.frameDuration = Display.cpuCyclesPerFrame / GameBoy.frequency;
-// Display.palette = [
-//     0xffceefff, 0xff4a94de, 0xff2129ad, 0xff521931,
-// ];
 Display.palette = [
     0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000,
 ];
