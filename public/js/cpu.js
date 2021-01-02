@@ -17,7 +17,7 @@ class GameBoy {
         this.e = 0;
         this.h = 0;
         this.l = 0;
-        this._pc = 0x0100;
+        this._pc = 0x0150;
         this._sp = 0xfffe;
 
         this.ime = false;

@@ -2,14 +2,14 @@ class Display {
     constructor(gb) {
         this.gb = gb;
 
-        this.lcdOn = false;
+        this.lcdOn = true;
         this.windowTilemap = false;
         this.windowOn = false;
-        this.bgWindowTileMode = false;
+        this.bgWindowTileMode = true;
         this.bgTilemap = false;
         this.objHeight = false;
         this.objOn = false;
-        this.bgOn = false;
+        this.bgOn = true;
 
         this.lycMatchInt = false;
         this.mode10Int = false;
