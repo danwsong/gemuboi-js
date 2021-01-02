@@ -159,6 +159,7 @@ class Cartridge {
                         break;
                     case 0x6:
                     case 0x7:
+                        this.rtc.latch = value;
                         break;
                 }
                 break;
@@ -196,11 +197,15 @@ class Cartridge {
                     case 0x03:
                         return this.ram[(this.ramBankNumber << 13) | address];
                     case 0x08:
+                        return this.rtc.s;
                     case 0x09:
+                        return this.rtc.m;
                     case 0x0a:
+                        return this.rtc.h;
                     case 0x0b:
+                        return this.rtc.dl;
                     case 0x0c:
-                        return 0x00;
+                        return this.rtc.dh;
                     default:
                         return 0x00;
                 }
@@ -240,10 +245,19 @@ class Cartridge {
                         this.ram[(this.ramBankNumber << 13) | address] = value;
                         break;
                     case 0x08:
+                        this.rtc.s = value;
+                        break;
                     case 0x09:
+                        this.rtc.m = value;
+                        break;
                     case 0x0a:
+                        this.rtc.h = value;
+                        break;
                     case 0x0b:
+                        this.rtc.dl = value;
+                        break;
                     case 0x0c:
+                        this.rtc.dh = value;
                         break;
                     default:
                         break;
@@ -369,10 +383,10 @@ class Cartridge {
             }
         }
         if (this.hasRTC) {
-            if (this.hasBattery && this.title in localStorage) {
-                
+            if (this.hasBattery && (this.title + 'TIME') in localStorage) {
+                this.rtc = new RTC(parseFloat(localStorage[this.title + 'TIME']));
             } else {
-
+                this.rtc = new RTC(Date.now());
             }
         }
     }
@@ -382,7 +396,7 @@ class Cartridge {
             localStorage[this.title] = this.ram;
         }
         if (this.hasRTC && this.hasBattery) {
-
+            localStorage[this.title + 'TIME'] = this.rtc.time;
         }
     }
 }
