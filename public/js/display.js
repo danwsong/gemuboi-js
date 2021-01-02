@@ -210,12 +210,12 @@ class Display {
     }
 
     cycle() {
-        this.lycMatch = this.ly == this.lyc;
-        if (this.lycMatch && this.lycMatchInt && this.cycles == 0) {
-            this.gb.requestInterrupt(GameBoy.statInterrupt);
-        }
-
         if (this.lcdOn) {
+            this.lycMatch = this.ly == this.lyc;
+            if (this.lycMatch && this.lycMatchInt && this.cycles == 0) {
+                this.gb.requestInterrupt(GameBoy.statInterrupt);
+            }
+
             if (this.ly < Display.height) {
                 if (this.cycles == 0) {
                     if (this.mode10Int) {
@@ -255,6 +255,9 @@ class Display {
                     this.windowLine = 0;
                 }
             }
+        } else {
+            this.ly = 0;
+            this.mode = Display.modes.hblank;
         }
     }
 }
