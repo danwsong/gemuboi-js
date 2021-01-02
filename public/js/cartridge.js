@@ -5,13 +5,25 @@ class Cartridge {
 
     readROM(address) {
         switch (this.cartridgeType) {
-            case -1:
-                throw 'no cartridge loaded';
             case 0x00:
                 return this.rom[address];
             case 0x01:
             case 0x02:
             case 0x03:
+                switch (address >> 12) {
+                    case 0x0:
+                    case 0x1:
+                    case 0x2:
+                    case 0x3:
+                        return this.rom[address & 0x3fff];
+                    case 0x4:
+                    case 0x5:
+                    case 0x6:
+                    case 0x7:
+                        return this.rom[(this.romBankNumber << 14) | (address & 0x3fff)];
+                }
+            case 0x05:
+            case 0x06:
                 switch (address >> 12) {
                     case 0x0:
                     case 0x1:
@@ -48,8 +60,6 @@ class Cartridge {
 
     writeROM(address, value) {
         switch (this.cartridgeType) {
-            case -1:
-                throw 'no cartridge loaded';
             case 0x00:
                 break;
             case 0x01:
@@ -66,10 +76,11 @@ class Cartridge {
                         if ((value & 0b11111) == 0) {
                             value |= 0b00001;
                         }
-                        this.romBankNumber |= (value & 0b11111);
+                        this.romBankNumber |= value & 0b11111;
                         break;
                     case 0x4:
                     case 0x5:
+                        this.romBankNumber &= ~0b1100000;
                         if (this.ramBankMode) {
                             this.ramBankNumber = value & 0b11;
                         } else {
@@ -80,6 +91,32 @@ class Cartridge {
                     case 0x7:
                         this.ramBankMode = (value & 0b1) == 0b1;
                         break;
+                }
+                break;
+            case 0x05:
+            case 0x06:
+                switch (address >> 12) {
+                    case 0x0:
+                    case 0x1:
+                        switch ((address >> 8) & 0b1) {
+                            case 0b0:
+                                this.ramEnable = (value & 0b1111) == 0b1010;
+                                break;
+                            case 0b1:
+                                break;
+                        }
+                    case 0x2:
+                    case 0x3:
+                        switch ((address >> 8) & 0b1) {
+                            case 0b0:
+                                break;
+                            case 0b1:
+                                if ((value & 0b1111) == 0) {
+                                    value |= 0b0001;
+                                }
+                                this.romBankNumber = value & 0b1111;
+                                break;
+                        }
                 }
                 break;
             case 0x0f:
@@ -94,11 +131,10 @@ class Cartridge {
                         break;
                     case 0x2:
                     case 0x3:
-                        this.romBankNumber &= ~0b1111111;
                         if ((value & 0b1111111) == 0) {
                             value |= 0b0000001;
                         }
-                        this.romBankNumber |= (value & 0b1111111);
+                        this.romBankNumber = value & 0b1111111;
                         break;
                     case 0x4:
                     case 0x5:
@@ -128,9 +164,10 @@ class Cartridge {
     }
 
     readRAM(address) {
+        if (!this.ramEnable) {
+            return 0x00;
+        }
         switch (this.cartridgeType) {
-            case -1:
-                throw 'no cartridge loaded';
             case 0x00:
                 return 0x00;
             case 0x01:
@@ -138,6 +175,9 @@ class Cartridge {
             case 0x02:
             case 0x03:
                 return this.ram[(this.ramBankNumber << 13) | address];
+            case 0x05:
+            case 0x06:
+                return this.ram[address & 0x1ff];
             case 0x11:
                 break;
             case 0x12:
@@ -165,9 +205,10 @@ class Cartridge {
     }
 
     writeRAM(address, value) {
+        if (!this.ramEnable) {
+            return;
+        }
         switch (this.cartridgeType) {
-            case -1:
-                throw 'no cartridge loaded';
             case 0x00:
                 break;
             case 0x01:
@@ -175,6 +216,10 @@ class Cartridge {
             case 0x02:
             case 0x03:
                 this.ram[(this.ramBankNumber << 13) | address] = value;
+                break;
+            case 0x05:
+            case 0x06:
+                this.ram[address & 0x1ff] = value & 0xf;
                 break;
             case 0x11:
                 break;
@@ -218,6 +263,12 @@ class Cartridge {
         if (this.title in localStorage) {
             this.ram = new Uint8Array(localStorage[this.title].split(',').map(parseFloat));
         } else {
+            switch (this.cartridgeType) {
+                case 0x05:
+                case 0x06:
+                    this.ram = new Uint8Array(0x200);
+                    break;
+            }
             switch (ramSize) {
                 case 0x00:
                     break;
