@@ -3,15 +3,16 @@ let cycles;
 let next;
 let paused = false;
 let running = false;
-let intervalId;
+let timeout;
 
 function update() {
+    timeout = null;
     while (cycles < Display.cpuCyclesPerFrame) {
         cycles += gb.cycle();
     }
     cycles -= Display.cpuCyclesPerFrame;
     next += Display.frameDuration * 1000;
-    intervalId = setTimeout(update, next - performance.now());
+    timeout = setTimeout(update, next - performance.now());
 }
 
 onbeforeunload = () => {
@@ -23,9 +24,11 @@ onbeforeunload = () => {
 document.onvisibilitychange = () => {
     if (running) {
         if (document.hidden) {
-            clearTimeout(intervalId);
-            Sound.ctx.suspend();
-            paused = true;
+            if (timeout != null) {
+                clearTimeout(timeout);
+                Sound.ctx.suspend();
+                paused = true;
+            }
         } else {
             if (paused) {
                 paused = false;
