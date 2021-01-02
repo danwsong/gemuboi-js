@@ -41,18 +41,18 @@ document.onclick = () => {
     Sound.ctx.resume();
 }
 
-document.getElementById('rom').onchange = e => {
-    var file = e.target.files[0];
-    var reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onload = e => {
+const romInput = document.getElementById('rom-input');
+romInput.onchange = () => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(romInput.files[0]);
+    reader.onload = () => {
         if (running) {
             clearTimeout(update);
             gb.cartridge.save();
         }
         gb = new GameBoy();
         try {
-            gb.cartridge.load(new Uint8Array(e.target.result));
+            gb.cartridge.load(new Uint8Array(reader.result));
 
             running = true;
             next = performance.now();
