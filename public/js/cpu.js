@@ -5,6 +5,7 @@ class GameBoy {
         this.joypad = new Joypad(this);
         this.cartridge = new Cartridge(this);
         this.sound = new Sound(this);
+        this.serial = new Serial(this);
 
         this.a = 0;
         this.fz = false;
@@ -164,8 +165,8 @@ class GameBoy {
                 } else if (address < 0xff80) {
                     switch (address & 0xff) {
                         case 0x00: return this.joypad.p1;
-                        case 0x01: return 0x00;
-                        case 0x02: return 0x00;
+                        case 0x01: return this.serial.sb;
+                        case 0x02: return this.serial.sc;
                         case 0x04: return this.timer.div;
                         case 0x05: return this.timer.tima;
                         case 0x06: return this.timer.tma;
@@ -259,8 +260,8 @@ class GameBoy {
                 } else if (address < 0xff80) {
                     switch (address & 0xff) {
                         case 0x00: this.joypad.p1 = value; break;
-                        case 0x01: break;
-                        case 0x02: break;
+                        case 0x01: this.serial.sb = value; break;
+                        case 0x02: this.serial.sc = value; break;
                         case 0x04: this.timer.div = value; break;
                         case 0x05: this.timer.tima = value; break;
                         case 0x06: this.timer.tma = value; break;
@@ -458,6 +459,11 @@ class GameBoy {
         let soundCycles = this.cycles;
         while (soundCycles-- > 0) {
             this.sound.cycle();
+        }
+
+        let serialCycles = this.cycles;
+        while (serialCycles-- > 0) {
+            this.serial.cycle();
         }
 
         return this.cycles;
