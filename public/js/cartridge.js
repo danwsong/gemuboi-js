@@ -36,6 +36,9 @@ class Cartridge {
                     case 0x7:
                         return this.rom[(this.romBankNumber << 14) | (address & 0x3fff)];
                 }
+            case 0x08:
+            case 0x09:
+                return this.rom[address];
             case 0x0f:
             case 0x10:
             case 0x11:
@@ -53,8 +56,6 @@ class Cartridge {
                     case 0x7:
                         return this.rom[(this.romBankNumber << 14) | (address & 0x3fff)];
                 }
-            default:
-                throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
         }
     }
 
@@ -119,6 +120,9 @@ class Cartridge {
                         }
                 }
                 break;
+            case 0x08:
+            case 0x09:
+                break;
             case 0x0f:
             case 0x10:
             case 0x11:
@@ -158,8 +162,6 @@ class Cartridge {
                         break;
                 }
                 break;
-            default:
-                throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
         }
     }
 
@@ -171,15 +173,18 @@ class Cartridge {
             case 0x00:
                 return 0x00;
             case 0x01:
-                break;
+                return 0x00;
             case 0x02:
             case 0x03:
                 return this.ram[(this.ramBankNumber << 13) | address];
             case 0x05:
             case 0x06:
                 return this.ram[address & 0x1ff];
+            case 0x08:
+            case 0x09:
+                return this.ram[address];
             case 0x11:
-                break;
+                return 0x00;
             case 0x12:
             case 0x13:
             case 0x0f:
@@ -199,8 +204,6 @@ class Cartridge {
                     default:
                         return 0x00;
                 }
-            default:
-                throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
         }
     }
 
@@ -212,7 +215,6 @@ class Cartridge {
             case 0x00:
                 break;
             case 0x01:
-                break;
             case 0x02:
             case 0x03:
                 this.ram[(this.ramBankNumber << 13) | address] = value;
@@ -221,12 +223,15 @@ class Cartridge {
             case 0x06:
                 this.ram[address & 0x1ff] = value & 0xf;
                 break;
-            case 0x11:
+            case 0x08:
+            case 0x09:
+                this.ram[address] = value;
                 break;
-            case 0x12:
-            case 0x13:
             case 0x0f:
             case 0x10:
+            case 0x11:
+            case 0x12:
+            case 0x13:
                 switch (this.ramBankNumber) {
                     case 0x00:
                     case 0x01:
@@ -244,8 +249,6 @@ class Cartridge {
                         break;
                 }
                 break;
-            default:
-                throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
         }
     }
 
@@ -253,6 +256,90 @@ class Cartridge {
         this.title = new TextDecoder('ascii').decode(file.slice(0x134, 0x13f));
 
         this.cartridgeType = file[0x147];
+        switch (this.cartridgeType) {
+            case 0x00:
+                this.rom = file;
+                break;
+            case 0x01:
+                this.rom = file;
+                this.romBankNumber = 1;
+                break;
+            case 0x02:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.ramBankMode = false;
+                this.hasRAM = true;
+                break;
+            case 0x03:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.ramBankMode = false;
+                this.hasRAM = true;
+                this.hasBattery = true;
+                break;
+            case 0x05:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ram = new Uint8Array(0x200);
+                this.ramEnable = false;
+                this.hasRAM = true;
+                break;
+            case 0x06:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ram = new Uint8Array(0x200);
+                this.ramEnable = false;
+                this.hasRAM = true;
+                this.hasBattery = true;
+                break;
+            case 0x08:
+                this.rom = file;
+                this.ramEnable = true;
+                this.hasRAM = true;
+                break;
+            case 0x09:
+                this.rom = file;
+                this.ramEnable = true;
+                this.hasRAM = true;
+                this.hasBattery = true;
+                break;
+            case 0x0f:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.hasBattery = true;
+                this.hasRTC = true;
+                break;
+            case 0x10:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.hasRAM = true;
+                this.hasBattery = true;
+                this.hasRTC = true;
+                break;
+            case 0x11:
+                this.rom = file;
+                this.romBankNumber = 1;
+                break;
+            case 0x12:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.hasRAM = true;
+                break;
+            case 0x13:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = false;
+                this.hasRAM = true;
+                this.hasBattery = true;
+                break;
+            default:
+                throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
+        }
 
         const romSize = 32768 << file[0x148];
         if (file.length != romSize) {
@@ -260,42 +347,42 @@ class Cartridge {
         }
 
         const ramSize = file[0x149];
-        if (this.title in localStorage) {
-            this.ram = new Uint8Array(localStorage[this.title].split(',').map(parseFloat));
-        } else {
-            switch (this.cartridgeType) {
-                case 0x05:
-                case 0x06:
-                    this.ram = new Uint8Array(0x200);
-                    break;
-            }
-            switch (ramSize) {
-                case 0x00:
-                    break;
-                case 0x02:
-                    this.ram = new Uint8Array(0x2000);
-                    break;
-                case 0x03:
-                    this.ram = new Uint8Array(0x8000);
-                    break;
-                case 0x04:
-                    this.ram = new Uint8Array(0x20000);
-                    break;
-                default:
-                    throw 'unknown RAM size: 0x' + ramSize.toString(16);
+        if (this.hasRAM) {
+            if (this.hasBattery && this.title in localStorage) {
+                this.ram = new Uint8Array(localStorage[this.title].split(',').map(parseFloat));
+            } else {
+                switch (ramSize) {
+                    case 0x00:
+                        break;
+                    case 0x02:
+                        this.ram = new Uint8Array(0x2000);
+                        break;
+                    case 0x03:
+                        this.ram = new Uint8Array(0x8000);
+                        break;
+                    case 0x04:
+                        this.ram = new Uint8Array(0x20000);
+                        break;
+                    default:
+                        throw 'unknown RAM size: 0x' + ramSize.toString(16);
+                }
             }
         }
+        if (this.hasRTC) {
+            if (this.hasBattery && this.title in localStorage) {
+                
+            } else {
 
-        this.ramEnable = false;
-        this.romBankNumber = 0;
-        this.ramBankNumber = 0;
-        this.ramBankMode = false;
-        this.rom = file;
+            }
+        }
     }
 
     save() {
-        if (this.ram) {
+        if (this.hasRAM && this.hasBattery) {
             localStorage[this.title] = this.ram;
+        }
+        if (this.hasRTC && this.hasBattery) {
+
         }
     }
 }
