@@ -125,9 +125,6 @@ class Cartridge {
                 break;
             case 0x0f:
             case 0x10:
-            case 0x11:
-            case 0x12:
-            case 0x13:
                 switch (address >> 12) {
                     case 0x0:
                     case 0x1:
@@ -163,6 +160,38 @@ class Cartridge {
                         break;
                 }
                 break;
+            case 0x11:
+            case 0x12:
+            case 0x13:
+                switch (address >> 12) {
+                    case 0x0:
+                    case 0x1:
+                        this.ramEnable = (value & 0b1111) == 0b1010;
+                        break;
+                    case 0x2:
+                    case 0x3:
+                        if ((value & 0b1111111) == 0) {
+                            value |= 0b0000001;
+                        }
+                        this.romBankNumber = value & 0b1111111;
+                        break;
+                    case 0x4:
+                    case 0x5:
+                        switch (value) {
+                            case 0x00:
+                            case 0x01:
+                            case 0x02:
+                            case 0x03:
+                                this.ramBankNumber = value;
+                            default:
+                                break;
+                        }
+                        break;
+                    case 0x6:
+                    case 0x7:
+                        break;
+                }
+                break;
         }
     }
 
@@ -184,10 +213,6 @@ class Cartridge {
             case 0x08:
             case 0x09:
                 return this.ram[address];
-            case 0x11:
-                return 0x00;
-            case 0x12:
-            case 0x13:
             case 0x0f:
             case 0x10:
                 switch (this.ramBankNumber) {
@@ -209,6 +234,19 @@ class Cartridge {
                     default:
                         return 0x00;
                 }
+            case 0x11:
+                return 0x00;
+            case 0x12:
+            case 0x13:
+                switch (this.ramBankNumber) {
+                    case 0x00:
+                    case 0x01:
+                    case 0x02:
+                    case 0x03:
+                        return this.ram[(this.ramBankNumber << 13) | address];
+                    default:
+                        return 0x00;
+                }
         }
     }
 
@@ -220,6 +258,7 @@ class Cartridge {
             case 0x00:
                 break;
             case 0x01:
+                break;
             case 0x02:
             case 0x03:
                 this.ram[(this.ramBankNumber << 13) | address] = value;
@@ -234,9 +273,6 @@ class Cartridge {
                 break;
             case 0x0f:
             case 0x10:
-            case 0x11:
-            case 0x12:
-            case 0x13:
                 switch (this.ramBankNumber) {
                     case 0x00:
                     case 0x01:
@@ -258,6 +294,21 @@ class Cartridge {
                         break;
                     case 0x0c:
                         this.rtc.dh = value;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case 0x11:
+                break;
+            case 0x12:
+            case 0x13:
+                switch (this.ramBankNumber) {
+                    case 0x00:
+                    case 0x01:
+                    case 0x02:
+                    case 0x03:
+                        this.ram[(this.ramBankNumber << 13) | address] = value;
                         break;
                     default:
                         break;
