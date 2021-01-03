@@ -3,4 +3,4 @@ A fairly accurate Game Boy emulator you can run in your browser, written in vani
 
 You can try it out [here](http://gemuboi.me).
 
-<img src="media/clip.gif" width="480" />
+<img src="media/screenshot.png" width="430" />
