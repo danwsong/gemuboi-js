@@ -288,6 +288,4 @@ Display.canvasHeight = Display.height + 2 * Display.canvasMargin;
 Display.canvas = document.getElementById('canvas');
 Display.canvas.width = Display.canvasWidth;
 Display.canvas.height = Display.canvasHeight;
-Display.canvas.style.width = Display.canvasWidth * 2 + 'px';
-Display.canvas.style.height = Display.canvasHeight * 2 + 'px';
 Display.ctx = Display.canvas.getContext('2d');
