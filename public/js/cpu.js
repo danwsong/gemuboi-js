@@ -163,64 +163,31 @@ class GameBoy {
                 } else if (address < 0xff00) {
                     return this.display.oam[address & 0xff];
                 } else if (address < 0xff80) {
-                    switch (address & 0xff) {
-                        case 0x00: return this.joypad.p1;
-                        case 0x01: return this.serial.sb;
-                        case 0x02: return this.serial.sc;
-                        case 0x04: return this.timer.div;
-                        case 0x05: return this.timer.tima;
-                        case 0x06: return this.timer.tma;
-                        case 0x07: return this.timer.tac;
-                        case 0x0f: return this.if;
-                        case 0x10: return this.sound.nr10;
-                        case 0x11: return this.sound.nr11;
-                        case 0x12: return this.sound.nr12;
-                        case 0x13: return this.sound.nr13;
-                        case 0x14: return this.sound.nr14;
-                        case 0x16: return this.sound.nr21;
-                        case 0x17: return this.sound.nr22;
-                        case 0x18: return this.sound.nr23;
-                        case 0x19: return this.sound.nr24;
-                        case 0x1a: return this.sound.nr30;
-                        case 0x1b: return this.sound.nr31;
-                        case 0x1c: return this.sound.nr32;
-                        case 0x1d: return this.sound.nr33;
-                        case 0x1e: return this.sound.nr34;
-                        case 0x20: return this.sound.nr41;
-                        case 0x21: return this.sound.nr42;
-                        case 0x22: return this.sound.nr43;
-                        case 0x23: return this.sound.nr44;
-                        case 0x24: return this.sound.nr50;
-                        case 0x25: return this.sound.nr51;
-                        case 0x26: return this.sound.nr52;
-                        case 0x30:
-                        case 0x31:
-                        case 0x32:
-                        case 0x33:
-                        case 0x34:
-                        case 0x35:
-                        case 0x36:
-                        case 0x37:
-                        case 0x38:
-                        case 0x39:
-                        case 0x3a:
-                        case 0x3b:
-                        case 0x3c:
-                        case 0x3d:
-                        case 0x3e:
-                        case 0x3f: return this.sound.readWave(address & 0xf);
-                        case 0x40: return this.display.lcdc;
-                        case 0x41: return this.display.stat;
-                        case 0x42: return this.display.scy;
-                        case 0x43: return this.display.scx;
-                        case 0x44: return this.display.ly;
-                        case 0x45: return this.display.lyc;
-                        case 0x47: return this.display.bgp;
-                        case 0x48: return this.display.obp0;
-                        case 0x49: return this.display.obp1;
-                        case 0x4a: return this.display.wy;
-                        case 0x4b: return this.display.wx;
-                        default: return 0x00;
+                    if (address >= 0xff10 && address <= 0xff3f) {
+                        return this.sound.readAddress(address & 0xff);
+                    } else {
+                        switch (address & 0xff) {
+                            case 0x00: return this.joypad.p1;
+                            case 0x01: return this.serial.sb;
+                            case 0x02: return this.serial.sc;
+                            case 0x04: return this.timer.div;
+                            case 0x05: return this.timer.tima;
+                            case 0x06: return this.timer.tma;
+                            case 0x07: return this.timer.tac;
+                            case 0x0f: return this.if;
+                            case 0x40: return this.display.lcdc;
+                            case 0x41: return this.display.stat;
+                            case 0x42: return this.display.scy;
+                            case 0x43: return this.display.scx;
+                            case 0x44: return this.display.ly;
+                            case 0x45: return this.display.lyc;
+                            case 0x47: return this.display.bgp;
+                            case 0x48: return this.display.obp0;
+                            case 0x49: return this.display.obp1;
+                            case 0x4a: return this.display.wy;
+                            case 0x4b: return this.display.wx;
+                            default: return 0x00;
+                        }
                     }
                 } else if (address < 0xffff) {
                     return this.hram[address & 0x7f];
@@ -258,64 +225,31 @@ class GameBoy {
                 } else if (address < 0xff00) {
                     this.display.oam[address & 0xff] = value;
                 } else if (address < 0xff80) {
-                    switch (address & 0xff) {
-                        case 0x00: this.joypad.p1 = value; break;
-                        case 0x01: this.serial.sb = value; break;
-                        case 0x02: this.serial.sc = value; break;
-                        case 0x04: this.timer.div = value; break;
-                        case 0x05: this.timer.tima = value; break;
-                        case 0x06: this.timer.tma = value; break;
-                        case 0x07: this.timer.tac = value; break;
-                        case 0x0f: this.if = value; break;
-                        case 0x10: this.sound.nr10 = value; break;
-                        case 0x11: this.sound.nr11 = value; break;
-                        case 0x12: this.sound.nr12 = value; break;
-                        case 0x13: this.sound.nr13 = value; break;
-                        case 0x14: this.sound.nr14 = value; break;
-                        case 0x16: this.sound.nr21 = value; break;
-                        case 0x17: this.sound.nr22 = value; break;
-                        case 0x18: this.sound.nr23 = value; break;
-                        case 0x19: this.sound.nr24 = value; break;
-                        case 0x1a: this.sound.nr30 = value; break;
-                        case 0x1b: this.sound.nr31 = value; break;
-                        case 0x1c: this.sound.nr32 = value; break;
-                        case 0x1d: this.sound.nr33 = value; break;
-                        case 0x1e: this.sound.nr34 = value; break;
-                        case 0x20: this.sound.nr41 = value; break;
-                        case 0x21: this.sound.nr42 = value; break;
-                        case 0x22: this.sound.nr43 = value; break;
-                        case 0x23: this.sound.nr44 = value; break;
-                        case 0x24: this.sound.nr50 = value; break;
-                        case 0x25: this.sound.nr51 = value; break;
-                        case 0x26: this.sound.nr52 = value; break;
-                        case 0x30:
-                        case 0x31:
-                        case 0x32:
-                        case 0x33:
-                        case 0x34:
-                        case 0x35:
-                        case 0x36:
-                        case 0x37:
-                        case 0x38:
-                        case 0x39:
-                        case 0x3a:
-                        case 0x3b:
-                        case 0x3c:
-                        case 0x3d:
-                        case 0x3e:
-                        case 0x3f: this.sound.writeWave(address & 0xf, value); break;
-                        case 0x40: this.display.lcdc = value; break;
-                        case 0x41: this.display.stat = value; break;
-                        case 0x42: this.display.scy = value; break;
-                        case 0x43: this.display.scx = value; break;
-                        case 0x45: this.display.lyc = value; break;
-                        case 0x46: this.display.dma = value; break;
-                        case 0x47: this.display.bgp = value; break;
-                        case 0x48: this.display.obp0 = value; break;
-                        case 0x49: this.display.obp1 = value; break;
-                        case 0x4a: this.display.wy = value; break;
-                        case 0x4b: this.display.wx = value; break;
-                        default: break;
+                    if (address >= 0xff10 && address <= 0xff3f) {
+                        this.sound.writeAddress(address & 0xff, value);
+                    } else {
+                        switch (address & 0xff) {
+                            case 0x00: this.joypad.p1 = value; break;
+                            case 0x01: this.serial.sb = value; break;
+                            case 0x02: this.serial.sc = value; break;
+                            case 0x04: this.timer.div = value; break;
+                            case 0x05: this.timer.tima = value; break;
+                            case 0x06: this.timer.tma = value; break;
+                            case 0x07: this.timer.tac = value; break;
+                            case 0x0f: this.if = value; break;
+                            case 0x40: this.display.lcdc = value; break;
+                            case 0x41: this.display.stat = value; break;
+                            case 0x42: this.display.scy = value; break;
+                            case 0x43: this.display.scx = value; break;
+                            case 0x45: this.display.lyc = value; break;
+                            case 0x46: this.display.dma = value; break;
+                            case 0x47: this.display.bgp = value; break;
+                            case 0x48: this.display.obp0 = value; break;
+                            case 0x49: this.display.obp1 = value; break;
+                            case 0x4a: this.display.wy = value; break;
+                            case 0x4b: this.display.wx = value; break;
+                            default: break;
+                        }
                     }
                 } else if (address < 0xffff) {
                     this.hram[address & 0x7f] = value;
