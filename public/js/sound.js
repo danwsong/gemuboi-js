@@ -113,6 +113,7 @@ class Sound {
         this.buffer = Sound.ctx.createBuffer(2, Sound.bufferSamples, Sound.sampleFrequency);
         this.bufferLeft = this.buffer.getChannelData(0);
         this.bufferRight = this.buffer.getChannelData(1);
+        this.sampleIndex = 0;
     }
 
     get nr10() {
@@ -325,10 +326,12 @@ class Sound {
     }
 
     genLFSR() {
-        const tmp = ((this.channel4LFSR & 0b10) >> 1) ^ (this.channel4LFSR & 0b1);
-        this.channel4LFSR = (tmp << 14) | (this.channel4LFSR >> 1);
-        if (this.channel4CounterStep) {
-            this.channel4LFSR = (this.channel4LFSR & ~0b1000000) | (tmp << 6);
+        for (let cycle = 0; cycle < Sound.cyclesPerSample; cycle++) {
+            const tmp = ((this.channel4LFSR & 0b10) >> 1) ^ (this.channel4LFSR & 0b1);
+            this.channel4LFSR = (tmp << 14) | (this.channel4LFSR >> 1);
+            if (this.channel4CounterStep) {
+                this.channel4LFSR = (this.channel4LFSR & ~0b1000000) | (tmp << 6);
+            }
         }
     }
 
@@ -429,9 +432,9 @@ class Sound {
             this.channel4Enable = false;
         }
         if (this.channel1Enable) {
-            this.channel1FrequencyCounter--;
-            if (this.channel1FrequencyCounter == 0) {
-                this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * Sound.cyclesPerPulse;
+            this.channel1FrequencyCounter -= Sound.cyclesPerSample;
+            if (this.channel1FrequencyCounter <= 0) {
+                this.channel1FrequencyCounter += (2048 - this.channel1Frequency) * Sound.cyclesPerPulse;
                 this.channel1Index = (this.channel1Index + 1) % 8;
             }
             if (this.channel1Volume != 0) {
@@ -445,9 +448,9 @@ class Sound {
             }
         }
         if (this.channel2Enable) {
-            this.channel2FrequencyCounter--;
-            if (this.channel2FrequencyCounter == 0) {
-                this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * Sound.cyclesPerPulse;
+            this.channel2FrequencyCounter -= Sound.cyclesPerSample;
+            if (this.channel2FrequencyCounter <= 0) {
+                this.channel2FrequencyCounter += (2048 - this.channel2Frequency) * Sound.cyclesPerPulse;
                 this.channel2Index = (this.channel2Index + 1) % 8;
             }
             if (this.channel2Volume != 0) {
@@ -461,9 +464,9 @@ class Sound {
             }
         }
         if (this.channel3Enable) {
-            this.channel3FrequencyCounter--;
-            if (this.channel3FrequencyCounter == 0) {
-                this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * Sound.cyclesPerWave;
+            this.channel3FrequencyCounter -= Sound.cyclesPerSample;
+            if (this.channel3FrequencyCounter <= 0) {
+                this.channel3FrequencyCounter += (2048 - this.channel3Frequency) * Sound.cyclesPerWave;
                 this.channel3Index = (this.channel3Index + 1) % 32;
             }
             if (this.channel3Volume != 0) {
@@ -477,9 +480,9 @@ class Sound {
             }
         }
         if (this.channel4Enable) {
-            this.channel4FrequencyCounter--;
-            if (this.channel4FrequencyCounter == 0) {
-                this.channel4FrequencyCounter = Sound.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
+            this.channel4FrequencyCounter -= Sound.cyclesPerSample;
+            if (this.channel4FrequencyCounter <= 0) {
+                this.channel4FrequencyCounter += Sound.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
                 this.genLFSR();
             }
             if (this.channel4Volume != 0) {
@@ -495,9 +498,9 @@ class Sound {
         left *= (this.leftVolume + 1) / 8;
         right *= (this.rightVolume + 1) / 8;
 
-        const index = Math.floor(this.cycles / Sound.cyclesPerSample) % Sound.bufferSamples;
-        this.bufferLeft[index] += left / Sound.channelCount / Sound.cyclesPerSample;
-        this.bufferRight[index] += right / Sound.channelCount / Sound.cyclesPerSample;
+        this.bufferLeft[this.sampleIndex] = left / Sound.channelCount;
+        this.bufferRight[this.sampleIndex] = right / Sound.channelCount;
+        this.sampleIndex = (this.sampleIndex + 1) % Sound.bufferSamples;
     }
 
     pushBuffer() {
@@ -521,62 +524,62 @@ class Sound {
 
     cycle() {
         if (this.soundEnable) {
-            for (let i = 0; i < Sound.cyclesPerCPUCycle; i++) {
-                if (this.channel1Trigger) {
-                    this.channel1Trigger = false;
-                    this.channel1Enable = true;
-                    this.channel1LengthCounter = 64 - this.channel1Length;
-                    this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * Sound.cyclesPerPulse;
-                    this.channel1SweepFrequency = this.channel1Frequency;
-                    this.channel1SweepCounter = this.channel1SweepDuration;
-                    this.channel1EnvelopeCounter = this.channel1EnvelopeDuration;
-                    this.channel1Volume = this.channel1InitialVolume;
-                    this.channel1Index = 0;
-                }
-                if (this.channel2Trigger) {
-                    this.channel2Trigger = false;
-                    this.channel2Enable = true;
-                    this.channel2LengthCounter = 64 - this.channel2Length;
-                    this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * Sound.cyclesPerPulse;
-                    this.channel2EnvelopeCounter = this.channel2EnvelopeDuration;
-                    this.channel2Volume = this.channel2InitialVolume;
-                    this.channel2Index = 0;
-                }
-                if (this.channel3Trigger) {
-                    this.channel3Trigger = false;
-                    this.channel3Enable = true;
-                    this.channel3LengthCounter = 256 - this.channel3Length;
-                    this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * Sound.cyclesPerWave;
-                    this.channel3Index = 0;
-                }
-                if (this.channel4Trigger) {
-                    this.channel4Trigger = false;
-                    this.channel4Enable = true;
-                    this.channel4LengthCounter = 64 - this.channel4Length;
-                    this.channel4FrequencyCounter = Sound.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
-                    this.channel4EnvelopeCounter = this.channel4EnvelopeDuration;
-                    this.channel4Volume = this.channel4InitialVolume;
-                    this.channel4LFSR = 0b111111111111111;
-                }
+            if (this.channel1Trigger) {
+                this.channel1Trigger = false;
+                this.channel1Enable = true;
+                this.channel1LengthCounter = 64 - this.channel1Length;
+                this.channel1FrequencyCounter = (2048 - this.channel1Frequency) * Sound.cyclesPerPulse;
+                this.channel1SweepFrequency = this.channel1Frequency;
+                this.channel1SweepCounter = this.channel1SweepDuration;
+                this.channel1EnvelopeCounter = this.channel1EnvelopeDuration;
+                this.channel1Volume = this.channel1InitialVolume;
+                this.channel1Index = 0;
+            }
+            if (this.channel2Trigger) {
+                this.channel2Trigger = false;
+                this.channel2Enable = true;
+                this.channel2LengthCounter = 64 - this.channel2Length;
+                this.channel2FrequencyCounter = (2048 - this.channel2Frequency) * Sound.cyclesPerPulse;
+                this.channel2EnvelopeCounter = this.channel2EnvelopeDuration;
+                this.channel2Volume = this.channel2InitialVolume;
+                this.channel2Index = 0;
+            }
+            if (this.channel3Trigger) {
+                this.channel3Trigger = false;
+                this.channel3Enable = true;
+                this.channel3LengthCounter = 256 - this.channel3Length;
+                this.channel3FrequencyCounter = (2048 - this.channel3Frequency) * Sound.cyclesPerWave;
+                this.channel3Index = 0;
+            }
+            if (this.channel4Trigger) {
+                this.channel4Trigger = false;
+                this.channel4Enable = true;
+                this.channel4LengthCounter = 64 - this.channel4Length;
+                this.channel4FrequencyCounter = Sound.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
+                this.channel4EnvelopeCounter = this.channel4EnvelopeDuration;
+                this.channel4Volume = this.channel4InitialVolume;
+                this.channel4LFSR = 0b111111111111111;
+            }
+            if (this.cycles % Sound.cyclesPerSample == 0) {
                 this.updateFrequency();
-                this.cycles++;
-                if (this.cycles % Sound.cyclesPerBuffer == 0) {
-                    this.pushBuffer();
-                }
-                if (this.cycles % Sound.cyclesPerFrame == 0) {
-                    this.frame++;
-                    switch (this.frame % 8) {
-                        case 2:
-                        case 6:
-                            this.updateSweep();
-                        case 0:
-                        case 4:
-                            this.updateLength();
-                            break;
-                        case 7:
-                            this.updateVolume();
-                            break;
-                    }
+            }
+            this.cycles += Sound.cyclesPerCPUCycle;
+            if (this.cycles % Sound.cyclesPerBuffer == 0) {
+                this.pushBuffer();
+            }
+            if (this.cycles % Sound.cyclesPerFrame == 0) {
+                this.frame++;
+                switch (this.frame % 8) {
+                    case 2:
+                    case 6:
+                        this.updateSweep();
+                    case 0:
+                    case 4:
+                        this.updateLength();
+                        break;
+                    case 7:
+                        this.updateVolume();
+                        break;
                 }
             }
         }
