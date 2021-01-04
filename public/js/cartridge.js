@@ -159,15 +159,20 @@ class Cartridge {
                             case 0x01:
                             case 0x02:
                             case 0x03:
+                                if (this.hasRAM) {
+                                    this.ramBankNumber = value;
+                                    this.ramBankNumber %= (this.ram.length / 0x2000);
+                                }
+                                break;
                             case 0x08:
                             case 0x09:
                             case 0x0a:
                             case 0x0b:
                             case 0x0c:
-                                if (this.hasRAM) {
+                                if (this.hasRTC) {
                                     this.ramBankNumber = value;
-                                    this.ramBankNumber %= (this.ram.length / 0x2000);
                                 }
+                                break;
                             default:
                                 break;
                         }
