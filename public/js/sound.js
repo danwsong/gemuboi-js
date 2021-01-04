@@ -607,9 +607,9 @@ class Sound {
 
     cycle() {
         if (this.soundEnable) {
-            this.updateTrigger();
-            this.updateDAC();
             if (this.cycles % Sound.cyclesPerSample == 0) {
+                this.updateTrigger();
+                this.updateDAC();
                 this.updateFrequency();
             }
             if (this.cycles % Sound.cyclesPerBuffer == 0) {
