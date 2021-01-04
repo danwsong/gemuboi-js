@@ -80,7 +80,6 @@ class Display {
         for (let l = 0; l < this.oam.length; l++) {
             this.oam[l] = this.gb.readAddress(h | l)
         }
-        this.gb.cycles -= this.oam.length;
     }
 
     get bgp() {
