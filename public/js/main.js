@@ -7,6 +7,9 @@ let timeout;
 
 function update() {
     timeout = null;
+    if (gb.cartridge.hasRTC) {
+        gb.cartridge.rtc.updateTime();
+    }
     while (cycles < Display.cpuCyclesPerFrame) {
         cycles += gb.cycle();
     }

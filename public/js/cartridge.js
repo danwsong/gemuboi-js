@@ -465,9 +465,10 @@ class Cartridge {
         }
         if (this.hasRTC) {
             if (this.hasBattery && (this.title + 'TIME') in localStorage) {
-                this.rtc = new RTC(parseFloat(localStorage[this.title + 'TIME']));
+                this.rtc = new RTC();
+                Object.assign(this.rtc, JSON.parse(localStorage[this.title + 'TIME']));
             } else {
-                this.rtc = new RTC(Date.now());
+                this.rtc = new RTC();
             }
         }
     }
@@ -477,7 +478,7 @@ class Cartridge {
             localStorage[this.title] = this.ram;
         }
         if (this.hasRTC && this.hasBattery) {
-            localStorage[this.title + 'TIME'] = this.rtc.time;
+            localStorage[this.title + 'TIME'] = JSON.stringify(this.rtc);
         }
     }
 }

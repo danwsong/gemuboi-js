@@ -1,22 +1,20 @@
 class RTC {
-    constructor(time) {
-        this._time = time;
-        this._latch = 0;
-        this.halt = false;
-        this.haltTime = 0;
+    constructor() {
+        this.time = 0;
 
-        this._s = 0;
-        this._m = 0;
-        this._h = 0;
-        this._dl = 0;
-        this._dh = 0;
-    }
+        this._latch = false;
 
-    get time() {
-        if (this.halt) {
-            return this.haltTime;
-        }
-        return this._time;
+        this.sec = 0;
+        this.min = 0;
+        this.hour = 0;
+        this.day = 0;
+        this.high = 0;
+
+        this.secLatch = 0;
+        this.minLatch = 0;
+        this.hourLatch = 0;
+        this.dayLatch = 0;
+        this.highLatch = 0;
     }
 
     get latch() {
@@ -24,69 +22,98 @@ class RTC {
     }
 
     set latch(value) {
-        if (this._latch == 0 && value == 1) {
-            this._s = Math.floor((Date.now() - this.time) / 1000) % 60;
-            this._m = Math.floor((Date.now() - this.time) / 60000) % 60;
-            this._h = Math.floor((Date.now() - this.time) / 3600000) % 24;
-            const _d = Math.floor((Date.now() - this.time) / 86400000);
-            const _dOverflow = Math.floor(_d / 512) != 0;
-            this._dl = _d % 256;
-            this._dh = (_dOverflow << 7) | (this.halt << 6) | (Math.floor(_d / 256) % 2);
+        const _latch = (value & 1) != 0;
+        if (!this._latch && _latch) {
+            this.secLatch = this.sec;
+            this.minLatch = this.min;
+            this.hourLatch = this.hour;
+            this.dayLatch = this.day;
+            this.highLatch = this.high;
         }
-        this._latch = value;
+        this._latch = _latch;
     }
 
     get s() {
-        return this._s;
+        return this.secLatch;
     }
 
     set s(value) {
-        const _s = Math.floor((Date.now() - this._time) / 1000) % 60;
-        this._time += (value - _s) * 1000;
+        this.sec = value;
     }
 
     get m() {
-        return this._m;
+        return this.minLatch;
     }
 
     set m(value) {
-        const _m = Math.floor((Date.now() - this._time) / 60000) % 60;
-        this._time += (value - _m) * 60000;
+        this.min = value;
     }
 
     get h() {
-        return this._h;
+        return this.hourLatch;
     }
 
     set h(value) {
-        const _h = Math.floor((Date.now() - this._time) / 3600000) % 24;
-        this._time += (value - _h) * 3600000;
+        this.hour = value;
     }
 
     get dl() {
-        return this._dl;
+        return this.dayLatch;
     }
 
     set dl(value) {
-        const _dl = Math.floor((Date.now() - this._time) / 86400000) % 256;
-        this._time += (value - _dl) * 86400000;
+        this.day = value;
     }
 
     get dh() {
-        return this._dh;
+        return 0x3e | this.highLatch;
     }
 
     set dh(value) {
-        const _dOverflow = Math.floor((Date.now() - this._time) / 44236800000);
-        this._time += (((value & 0b10000000) != 0) - _dOverflow) * 44236800000;
-        const _dh = Math.floor((Date.now() - this._time) / 22118400000) % 2;
-        this._time += ((value & 0b1) - _dh) * 22118400000;
-        const _halt = (value & 0b1000000) != 0;
-        if (!this.halt && _halt) {
-            this.haltTime = Date.now();
-        } else if (this.halt && !_halt) {
-            this._time += Date.now() - this.haltTime;
+        this.high = value;
+    }
+
+    get halted() {
+        return (this.high & 0x40) != 0;
+    }
+
+    updateTime() {
+        if (!this.halted) {
+            const cur = Math.floor(Date.now() / 1000);
+            while (this.time + 60 * 60 * 24 < cur) {
+                this.time += 60 * 60 * 24;
+                this.day++;
+                if (this.day == 256) {
+                    this.day = 0;
+                    if ((this.high & 1) != 0) {
+                        this.high |= 0x80;
+                    }
+                    this.high ^= 1;
+                }
+            }
+            while (this.time < cur) {
+                this.time++;
+                this.sec++;
+                if (this.sec == 60) {
+                    this.sec = 0;
+                    this.min++;
+                    if (this.min == 60) {
+                        this.min = 0;
+                        this.hour++;
+                        if (this.hour == 24) {
+                            this.hour = 0;
+                            this.day++;
+                            if (this.day == 256) {
+                                this.day = 0;
+                                if ((this.high & 1) != 0) {
+                                    this.high |= 0x80;
+                                }
+                                this.high ^= 1;
+                            }
+                        }
+                    }
+                }
+            }
         }
-        this.halt = _halt;
     }
 }
