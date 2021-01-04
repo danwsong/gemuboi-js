@@ -132,11 +132,9 @@ class GameBoy {
         this.writeAddress(--this.sp, this.pch);
         this.writeAddress(--this.sp, this.pcl);
         this.pc = address;
-        this.cycles += 3;
     }
 
     readAddress(address) {
-        this.cycles += 1;
         switch (address >> 12) {
             case 0x0:
             case 0x1:
@@ -198,7 +196,6 @@ class GameBoy {
     }
 
     writeAddress(address, value) {
-        this.cycles += 1;
         switch (address >> 12) {
             case 0x0:
             case 0x1:
@@ -405,6 +402,7 @@ class GameBoy {
 
     decode() {
         const instr = this.readAddress(this.pc++);
+        this.cycles += GameBoy.instrCycles[instr];
         const quad = instr >> 6;
         const ops = instr & 0b111111;
         const op1 = ops >> 3, op2 = ops & 0b111;
@@ -454,15 +452,12 @@ class GameBoy {
                 this.fh = (this.hl & 0xfff) + (ss & 0xfff) > 0xfff;
                 this.fn = false;
                 this.hl += ss;
-                this.cycles += 1;
             } else if ((op1 & 0b1) == 0b0 && op2 == 0b011) {
                 // INC ss
                 this.writeDoubleRegister(op1 >> 1, this.readDoubleRegister(op1 >> 1) + 1);
-                this.cycles += 1;
             } else if ((op1 & 0b1) == 0b1 && op2 == 0b011) {
                 // DEC ss
                 this.writeDoubleRegister(op1 >> 1, this.readDoubleRegister(op1 >> 1) - 1);
-                this.cycles += 1;
             } else if (op1 == 0b000 && op2 == 0b111) {
                 // RLCA
                 const carry = this.a & 0b10000000;
@@ -499,7 +494,6 @@ class GameBoy {
                 // JR e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
                 this.pc += offset;
-                this.cycles += 1;
             } else if ((op1 & 0b100) == 0b100 && op2 == 0b000) {
                 // JR cc, e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
@@ -657,11 +651,9 @@ class GameBoy {
             } else if (op1 == 0b111 && op2 == 0b001) {
                 // LD SP, HL
                 this.sp = this.hl;
-                this.cycles += 1;
             } else if ((op1 & 0b1) == 0b0 && op2 == 0b101) {
                 // PUSH qq
                 this.pushDoubleRegister(op1 >> 1);
-                this.cycles += 1;
             } else if ((op1 & 0b1) == 0b0 && op2 == 0b001) {
                 // POP qq
                 this.popDoubleRegister(op1 >> 1);
@@ -674,7 +666,6 @@ class GameBoy {
                 this.fn = false;
                 this.fz = false;
                 this.hl = tmp;
-                this.cycles += 1;
             } else if (op1 == 0b101 && op2 == 0b000) {
                 // ADD SP, e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
@@ -684,8 +675,6 @@ class GameBoy {
                 this.fn = false;
                 this.fz = false;
                 this.sp = tmp;
-                this.cycles += 1;
-                this.cycles += 1;
             } else if (op1 == 0b000 && op2 == 0b110) {
                 // ADD A, n
                 const imm = this.readAddress(this.pc++);
@@ -766,7 +755,6 @@ class GameBoy {
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.pc = (imm2 << 8) | imm1;
-                this.cycles += 1;
             } else if ((op1 & 0b100) == 0b000 && op2 == 0b010) {
                 // JP cc, nn
                 const imm1 = this.readAddress(this.pc++);
@@ -785,7 +773,6 @@ class GameBoy {
                 this.writeAddress(--this.sp, this.pch);
                 this.writeAddress(--this.sp, this.pcl);
                 this.pc = (imm2 << 8) | imm1;
-                this.cycles += 1;
             } else if ((op1 & 0b100) == 0b000 && op2 == 0b100) {
                 // CALL cc, nn
                 const imm1 = this.readAddress(this.pc++);
@@ -794,33 +781,29 @@ class GameBoy {
                     this.writeAddress(--this.sp, this.pch);
                     this.writeAddress(--this.sp, this.pcl);
                     this.pc = (imm2 << 8) | imm1;
-                    this.cycles += 1;
+                    this.cycles += 3;
                 }
             } else if (op1 == 0b001 && op2 == 0b001) {
                 // RET
                 this.pc = this.readAddress(this.sp++);
                 this.pc |= this.readAddress(this.sp++) << 8;
-                this.cycles += 1;
             } else if (op1 == 0b011 && op2 == 0b001) {
                 // RETI
                 this.pc = this.readAddress(this.sp++);
                 this.pc |= this.readAddress(this.sp++) << 8;
                 this.ime = true;
-                this.cycles += 1;
             } else if ((op1 & 0b100) == 0b000 && op2 == 0b000) {
                 // RET cc
                 if (this.readCondition(op1 & 0b11)) {
                     this.pc = this.readAddress(this.sp++);
                     this.pc |= this.readAddress(this.sp++) << 8;
-                    this.cycles += 1;
+                    this.cycles += 3;
                 }
-                this.cycles += 1;
             } else if (op2 == 0b111) {
                 // RST t
                 this.writeAddress(--this.sp, this.pch);
                 this.writeAddress(--this.sp, this.pcl);
                 this.pc = op1 << 3;
-                this.cycles += 1;
             } else if ((op1 & 0b110) == 0b110 && op2 == 0b011) {
                 // DI/EI
                 this.ime = (op1 & 0b1) != 0;
@@ -832,6 +815,7 @@ class GameBoy {
 
     decode_cb() {
         const instr = this.readAddress(this.pc++);
+        this.cycles += GameBoy.cbInstrCycles[instr];
         const quad = instr >> 6;
         const ops = instr & 0b111111;
         const op1 = ops >> 3, op2 = ops & 0b111;
@@ -924,6 +908,42 @@ class GameBoy {
     }
 }
 GameBoy.frequency = 1048576;
+GameBoy.instrCycles = [
+    1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
+    0, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
+    2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1,
+    2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    2, 2, 2, 2, 2, 2, 0, 2, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+    2, 3, 3, 4, 3, 4, 2, 4, 2, 4, 3, 0, 3, 6, 2, 4,
+    2, 3, 3, 0, 3, 4, 2, 4, 2, 4, 3, 0, 3, 0, 2, 4,
+    3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
+    3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
+];
+GameBoy.cbInstrCycles = [
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+    2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+    2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+    2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+    2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+];
 GameBoy.joypadInterrupt = 0b00010000;
 GameBoy.serialInterrupt = 0b00001000;
 GameBoy.timerInterrupt = 0b00000100;

@@ -3,13 +3,12 @@ class Timer {
         this.gb = gb;
 
         this._div = 0;
-
-        this.tima = 0;
-        this.tma = 0;
+        this._tima = 0;
+        this._tma = 0;
         this.timerEnable = false;
-        this.clockSelect = 0b00;
+        this.clockSelect = 0;
 
-        this.overflowDelay = false;
+        this.overflow = false;
     }
 
     get div() {
@@ -17,35 +16,72 @@ class Timer {
     }
 
     set div(value) {
+        if (this.tacBit) {
+            this.timaIncrement();
+        }
         this._div = 0;
     }
 
+    get tima() {
+        return this._tima;
+    }
+
+    set tima(value) {
+        if (!this.overflow) {
+            this._tima = value;
+        }
+    }
+
+    get tma() {
+        return this._tma;
+    }
+
+    set tma(value) {
+        this._tma = value;
+        if (this.overflow) {
+            this._tima = this._tma;
+        }
+    }
+
     get tac() {
-        return (this.timerEnable << 2) | this.clockSelect;
+        return 0xf8 | (this.timerEnable << 2) | this.clockSelect;
     }
 
     set tac(value) {
-        this.timerEnable = (value & 0b100) != 0;
-        this.clockSelect = value & 0b11;
+        const oldBit = this.timerEnable && this.tacBit;
+        this.timerEnable = (value & 0x4) != 0;
+        this.clockSelect = value & 0x3;
+        const newBit = this.timerEnable && this.tacBit;
+        if (oldBit && !newBit) {
+            this.timaIncrement();
+        }
+    }
+
+    get tacBit() {
+        return (this._div & Timer.tacBits[this.clockSelect]) != 0;
+    }
+
+    timaIncrement() {
+        this._tima = (this._tima + 1) & 0xff;
+        this.overflow = this._tima == 0;
     }
 
     cycle() {
-        this._div += 4;
-        if (this.timerEnable) {
-            const bit = Timer.tacCycles[this.clockSelect];
-            if ((~this._div & (this._div - 1) & bit) != 0) {
-                this.tima = (this.tima + 1) & 0xff;
-                if (this.tima == 0) {
-                    this.overflowDelay = true;
-                } else if (this.overflowDelay) {
-                    this.overflowDelay = false;
-                    this.tima = this.tma;
-                    this.gb.requestInterrupt(GameBoy.timerInterrupt);
-                }
+        if (this.overflow) {
+            this._div = (this._div + 4) & 0xffff;
+            this.overflow = false;
+            this._tima = this._tma;
+            this.gb.requestInterrupt(GameBoy.timerInterrupt);
+        } else if (this.timerEnable && this.tacBit) {
+            this._div = (this._div + 4) & 0xffff;
+            if (!this.tacBit) {
+                this.timaIncrement();
             }
+        } else {
+            this._div = (this._div + 4) & 0xffff;
         }
     }
 }
-Timer.tacCycles = [
-    0b0000001000000000, 0b0000000000001000, 0b0000000000100000, 0b0000000010000000
+Timer.tacBits = [
+    0x200, 0x8, 0x20, 0x80,
 ];
