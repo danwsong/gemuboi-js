@@ -153,58 +153,58 @@ class Display {
                     this.writePixel(this.ly, x, this.bgPalette[palette]);
                 }
             } else {
-                this.writePixel(this.ly, x, 0b00);
+                bg[x] = 0;
+                this.writePixel(this.ly, x, 0);
             }
         }
 
         if (this.objOn) {
             const objs = [];
             for (let obj = 0; obj < 40 && objs.length < 10; obj++) {
-                const objY = this.oam[obj << 2];
-                if (this.ly + (this.objHeight ? 0 : 8) < objY && this.ly + 16 >= objY) {
-                    objs.push(obj);
+                const objY = this.oam[obj * 4] - 16;
+                const objX = this.oam[obj * 4 + 1] - 8;
+                const tileY = (this.ly - objY) & 0xff;
+                if (tileY < (this.objHeight ? 16 : 8)) {
+                    let index = objs.length;
+                    const compObjX = this.oam[objs[index - 1] * 4 + 1] - 8;
+                    while (index > 0 && objX < compObjX) {
+                        index--;
+                    }
+                    objs.splice(index, 0, obj);
                 }
             }
-            objs.sort((a, b) => {
-                const objXA = this.oam[(a << 2) | 0b01];
-                const objXB = this.oam[(b << 2) | 0b01];
-                if (objXA != objXB) {
-                    return objXB - objXA;
-                }
-                return b - a;
-            });
-            objs.forEach(obj => {
-                const objAddress = obj << 2;
-                const objY = this.oam[objAddress | 0b00];
-                const objX = this.oam[objAddress | 0b01];
-                const tile = this.oam[objAddress | 0b10] & ~(this.objHeight ? 0b1 : 0b0);
-                const attributes = this.oam[objAddress | 0b11];
-                const priority = (attributes & 0b10000000) != 0;
-                const yFlip = (attributes & 0b1000000) != 0;
-                const xFlip = (attributes & 0b100000) != 0;
-                const paletteNumber = (attributes & 0b10000) >> 4;
 
-                if (objX != 0 && objX < Display.width + 8) {
-                    let tileY = this.ly - objY + 16;
+            for (let index = objs.length - 1; index >= 0; index--) {
+                const obj = objs[index];
+                const objY = this.oam[obj * 4] - 16;
+                const objX = this.oam[obj * 4 + 1] - 8;
+                const tile = this.oam[obj * 4 + 2] & (this.objHeight ? 0xfe : 0xff);
+                const attr = this.oam[obj * 4 + 3];
+                const priority = (attr & 0b10000000) != 0;
+                const yFlip = (attr & 0b1000000) != 0;
+                const xFlip = (attr & 0b100000) != 0;
+                const paletteNumber = (attr & 0b10000) >> 4;
+
+                if (objX > -8 && objX < Display.width) {
+                    let tileY = this.ly - objY;
                     if (yFlip) {
                         tileY = (this.objHeight ? 15 : 7) - tileY;
                     }
                     const tileAddress = (tile << 4) | (tileY << 1);
 
-                    const minX = (objX > 8) ? objX - 8 : 0;
-                    const maxX = (objX < Display.width) ? objX : Display.width;
-                    const beginX = xFlip ? maxX - 1 : minX;
-                    const endX = xFlip ? minX - 1 : maxX;
-                    const incX = xFlip ? -1 : 1;
-                    for (let x = beginX, tileX = 0; x != endX; x += incX, tileX++) {
+                    for (let x = Math.max(objX, 0); x < Math.min(objX + 8, Display.width); x++) {
+                        let tileX = x - objX;
+                        if (xFlip) {
+                            tileX = 7 - tileX;
+                        }
                         const palette = (((this.vram[tileAddress + 1] << tileX) & 0b10000000) >> 6) | (((this.vram[tileAddress] << tileX) & 0b10000000) >> 7);
 
-                        if (!this.bgOn || (palette != 0b00 && (!priority || bg[x] == 0b00))) {
+                        if (palette != 0b00 && (!priority || bg[x] == 0b00)) {
                             this.writePixel(this.ly, x, this.objPalette[paletteNumber][palette]);
                         }
                     }
                 }
-            });
+            }
         }
     }
 
