@@ -586,7 +586,7 @@ class Sound {
 
     pushBuffer() {
         const now = Sound.ctx.currentTime;
-        const nowPlusDelay = now + Sound.bufferDuration;
+        const nowPlusDelay = now + Sound.latency;
         this.nextPush = this.nextPush || nowPlusDelay;
         if (this.nextPush >= now) {
             const bufferSource = Sound.ctx.createBufferSource();
@@ -641,6 +641,7 @@ Sound.cyclesPerWave = Sound.frequency / Sound.waveFrequency;
 Sound.bufferSamples = 4096;
 Sound.sampleFrequency = 65536;
 Sound.bufferDuration = Sound.bufferSamples / Sound.sampleFrequency;
+Sound.latency = 0.125;
 Sound.frameFrequency = 512;
 Sound.cyclesPerFrame = Sound.frequency / Sound.frameFrequency;
 Sound.cyclesPerSample = Sound.frequency / Sound.sampleFrequency;
