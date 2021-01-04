@@ -347,12 +347,10 @@ class Sound {
     }
 
     genLFSR() {
-        for (let cycle = 0; cycle < Sound.cyclesPerSample; cycle++) {
-            const tmp = ((this.channel4LFSR & 0x2) >> 1) ^ (this.channel4LFSR & 0x1);
-            this.channel4LFSR = (tmp << 14) | (this.channel4LFSR >> 1);
-            if (this.channel4CounterStep) {
-                this.channel4LFSR = (this.channel4LFSR & ~0x40) | (tmp << 6);
-            }
+        const tmp = ((this.channel4LFSR & 0x2) >> 1) ^ (this.channel4LFSR & 0x1);
+        this.channel4LFSR = (tmp << 14) | (this.channel4LFSR >> 1);
+        if (this.channel4CounterStep) {
+            this.channel4LFSR = (this.channel4LFSR & ~0x40) | (tmp << 6);
         }
     }
 
@@ -517,7 +515,7 @@ class Sound {
         let right = 0;
         if (this.channel1Enable) {
             this.channel1FrequencyCounter -= Sound.cyclesPerSample;
-            if (this.channel1FrequencyCounter <= 0) {
+            while (this.channel1FrequencyCounter <= 0) {
                 this.channel1FrequencyCounter += (2048 - this.channel1Frequency) * Sound.cyclesPerPulse;
                 this.channel1Index = (this.channel1Index + 1) % 8;
             }
@@ -533,7 +531,7 @@ class Sound {
         }
         if (this.channel2Enable) {
             this.channel2FrequencyCounter -= Sound.cyclesPerSample;
-            if (this.channel2FrequencyCounter <= 0) {
+            while (this.channel2FrequencyCounter <= 0) {
                 this.channel2FrequencyCounter += (2048 - this.channel2Frequency) * Sound.cyclesPerPulse;
                 this.channel2Index = (this.channel2Index + 1) % 8;
             }
@@ -549,7 +547,7 @@ class Sound {
         }
         if (this.channel3Enable) {
             this.channel3FrequencyCounter -= Sound.cyclesPerSample;
-            if (this.channel3FrequencyCounter <= 0) {
+            while (this.channel3FrequencyCounter <= 0) {
                 this.channel3FrequencyCounter += (2048 - this.channel3Frequency) * Sound.cyclesPerWave;
                 this.channel3Index = (this.channel3Index + 1) % 32;
             }
@@ -565,7 +563,7 @@ class Sound {
         }
         if (this.channel4Enable) {
             this.channel4FrequencyCounter -= Sound.cyclesPerSample;
-            if (this.channel4FrequencyCounter <= 0) {
+            while (this.channel4FrequencyCounter <= 0) {
                 this.channel4FrequencyCounter += Sound.divisionRatios[this.channel4DivisionRatio] << this.channel4ShiftClockFrequency;
                 this.genLFSR();
             }
