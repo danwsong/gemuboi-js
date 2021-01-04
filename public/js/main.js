@@ -26,13 +26,17 @@ document.onvisibilitychange = () => {
         if (document.hidden) {
             if (timeout != null) {
                 clearTimeout(timeout);
-                Sound.ctx.suspend();
+                if (Sound.ctx.state == 'running') {
+                    Sound.ctx.suspend();
+                }
                 paused = true;
             }
         } else {
             if (paused) {
                 paused = false;
-                Sound.ctx.resume();
+                if (Sound.ctx.state != 'running') {
+                    Sound.ctx.resume();
+                }
                 next = performance.now();
                 update();
             }
@@ -41,7 +45,9 @@ document.onvisibilitychange = () => {
 }
 
 document.onclick = () => {
-    Sound.ctx.resume();
+    if (Sound.ctx.state != 'running') {
+        Sound.ctx.resume();
+    }
 }
 
 const romInput = document.getElementById('rom-input');
