@@ -587,7 +587,7 @@ class Sound {
     pushBuffer() {
         const now = Sound.ctx.currentTime;
         const nowPlusDelay = now + Sound.bufferDuration;
-        this.nextPush = (this.nextPush || nowPlusDelay);
+        this.nextPush = this.nextPush || nowPlusDelay;
         if (this.nextPush >= now) {
             const bufferSource = Sound.ctx.createBufferSource();
             bufferSource.buffer = this.buffer;

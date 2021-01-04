@@ -11,7 +11,7 @@ function update() {
         cycles += gb.cycle();
     }
     cycles -= Display.cpuCyclesPerFrame;
-    next += Display.frameDuration * 1000;
+    next += Display.frameInterval;
     timeout = setTimeout(update, next - performance.now());
 }
 
@@ -22,27 +22,23 @@ onbeforeunload = () => {
 };
 
 document.onvisibilitychange = () => {
-    if (running) {
-        if (document.hidden) {
-            if (timeout != null) {
-                clearTimeout(timeout);
-                if (Sound.ctx.state == 'running') {
-                    Sound.ctx.suspend();
-                }
-                paused = true;
-            }
-        } else {
-            if (paused) {
-                paused = false;
-                if (Sound.ctx.state != 'running') {
-                    Sound.ctx.resume();
-                }
-                next = performance.now();
-                update();
-            }
+    if (document.hidden) {
+        if (timeout != null) {
+            clearTimeout(timeout);
+            paused = true;
+        }
+    } else {
+        if (paused) {
+            paused = false;
+            next = performance.now();
+            update();
         }
     }
 }
+
+document.addEventListener('focus', () => {
+    document.activeElement.blur();
+}, true);
 
 document.onclick = () => {
     if (Sound.ctx.state != 'running') {
@@ -50,13 +46,13 @@ document.onclick = () => {
     }
 }
 
-const romInput = document.getElementById('rom-input');
+const romInput = document.getElementById('romInput');
 romInput.onchange = () => {
     const reader = new FileReader();
     reader.readAsArrayBuffer(romInput.files[0]);
     reader.onload = () => {
         if (running) {
-            clearTimeout(update);
+            clearTimeout(timeout);
             gb.cartridge.save();
         }
         gb = new GameBoy();

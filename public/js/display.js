@@ -272,6 +272,7 @@ Display.linesPerFrame = 154;
 Display.cyclesPerCPUCycle = Display.frequency / GameBoy.frequency;
 Display.cpuCyclesPerFrame = Display.cyclesPerLine * Display.linesPerFrame / Display.cyclesPerCPUCycle;
 Display.frameDuration = Display.cpuCyclesPerFrame / GameBoy.frequency;
+Display.frameInterval = Display.frameDuration * 1000;
 Display.palette = [
     0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000,
 ];

@@ -2,39 +2,42 @@
 <html>
 
 <head>
-    <title>gemuboi</title>
+    <title>gemuboi.js</title>
     <link rel="icon" href="img/favicon.ico" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
 </head>
 
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid my-3">
         <div class="row">
             <div class="col-md-2"></div>
             <div class="col-md">
-                <main class="container-fluid py-3 px-0">
-                    <div class="container-fluid py-3 text-center border rounded">
-                        <h1>gemuboi</h1>
+                <main class="container px-0">
+                    <div class="container my-3 text-center">
+                        <h1 class="display-6"><span class="fw-bold">gemuboi</span>.js</h1>
                     </div>
-                    <div class="container-fluid px-0">
+                    <div class="container px-0">
                         <div class="row">
                             <div class="col-md">
-                                <div class="container-fluid px-0 my-3 border rounded">
-                                    <canvas id="canvas" style="width: 100%; image-rendering: crisp-edges; display: block;"></canvas>
+                                <div class="container my-3 px-0 border rounded">
+                                    <canvas id="canvas" class="d-block w-100"
+                                        style="image-rendering: crisp-edges; image-rendering: pixelated;"></canvas>
                                 </div>
-                                <div class="input-group my-3">
-                                    <input type="file" class="form-control" id="rom-input" accept=".gb, .gbc" />
+                                <div class="container my-3 px-0">
+                                    <label for="romInput" class="btn btn-dark w-100">Select ROM</label>
                                 </div>
+                                <input type="file" id="romInput" accept=".gb, .gbc" class="d-none" />
                             </div>
                             <div class="col-md">
                                 <div class="accordion my-3" id="controlAccordion">
                                     <div class="accordion-item">
                                         <div class="accordion-header">
                                             <button class="accordion-button collapsed" data-bs-toggle="collapse"
-                                                data-bs-target="#controls">Controls</button>
+                                                data-bs-target="#controls" tabindex="-1">Controls</button>
                                         </div>
-                                        <div class="accordion-collapse collapse" id="controls" data-bs-parent="#controlAccordion">
+                                        <div class="accordion-collapse collapse" id="controls"
+                                            data-bs-parent="#controlAccordion">
                                             <div class="accordion-body">
                                                 <table class="table">
                                                     <thead>
@@ -85,8 +88,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="container-fluid py-3 text-center border rounded">
-                        <a href="https://github.com/danwsong/gemuboi-js" class="link-dark">Written in pure, vanilla JavaScript.</a>
+                    <div class="container my-3 text-center">
+                        <a href="https://github.com/danwsong/gemuboi-js" class="link-dark" tabindex="-1">Written in
+                            pure, vanilla JavaScript.</a>
                     </div>
                 </main>
             </div>
