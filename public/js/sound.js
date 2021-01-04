@@ -16,6 +16,10 @@ class Sound {
 
         this.soundEnable = false;
 
+        this.gainNode = Sound.ctx.createGain();
+        this.gainNode.gain.value = 0.25;
+        this.gainNode.connect(Sound.ctx.destination);
+
         this.buffer = Sound.ctx.createBuffer(2, Sound.bufferSamples, Sound.sampleFrequency);
         this.bufferLeft = this.buffer.getChannelData(0);
         this.bufferRight = this.buffer.getChannelData(1);
@@ -591,7 +595,7 @@ class Sound {
         if (this.nextPush >= now) {
             const bufferSource = Sound.ctx.createBufferSource();
             bufferSource.buffer = this.buffer;
-            bufferSource.connect(Sound.ctx.destination);
+            bufferSource.connect(this.gainNode);
             bufferSource.start(this.nextPush);
             this.nextPush += Sound.bufferDuration;
 
