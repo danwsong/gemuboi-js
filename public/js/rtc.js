@@ -22,7 +22,7 @@ class RTC {
     }
 
     set latch(value) {
-        const _latch = (value & 1) != 0;
+        const _latch = (value & 0x1) != 0;
         if (!this._latch && _latch) {
             this.secLatch = this.sec;
             this.minLatch = this.min;
@@ -73,22 +73,52 @@ class RTC {
         this.high = value;
     }
 
-    get halted() {
-        return (this.high & 0x40) != 0;
-    }
-
     updateTime() {
-        if (!this.halted) {
+        if ((this.high & 0x40) == 0) {
             const cur = Math.floor(Date.now() / 1000);
             while (this.time + 60 * 60 * 24 < cur) {
                 this.time += 60 * 60 * 24;
                 this.day++;
                 if (this.day == 256) {
                     this.day = 0;
-                    if ((this.high & 1) != 0) {
+                    if ((this.high & 0x1) != 0) {
                         this.high |= 0x80;
                     }
-                    this.high ^= 1;
+                    this.high ^= 0x1;
+                }
+            }
+            while (this.time + 60 * 60 < cur) {
+                this.time += 60 * 60;
+                this.hour++;
+                if (this.hour == 24) {
+                    this.hour = 0;
+                    this.day++;
+                    if (this.day == 256) {
+                        this.day = 0;
+                        if ((this.high & 0x1) != 0) {
+                            this.high |= 0x80;
+                        }
+                        this.high ^= 0x1;
+                    }
+                }
+            }
+            while (this.time + 60 < cur) {
+                this.time += 60;
+                this.min++;
+                if (this.min == 60) {
+                    this.min = 0;
+                    this.hour++;
+                    if (this.hour == 24) {
+                        this.hour = 0;
+                        this.day++;
+                        if (this.day == 256) {
+                            this.day = 0;
+                            if ((this.high & 0x1) != 0) {
+                                this.high |= 0x80;
+                            }
+                            this.high ^= 0x1;
+                        }
+                    }
                 }
             }
             while (this.time < cur) {
@@ -105,10 +135,10 @@ class RTC {
                             this.day++;
                             if (this.day == 256) {
                                 this.day = 0;
-                                if ((this.high & 1) != 0) {
+                                if ((this.high & 0x1) != 0) {
                                     this.high |= 0x80;
                                 }
-                                this.high ^= 1;
+                                this.high ^= 0x1;
                             }
                         }
                     }
