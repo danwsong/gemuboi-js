@@ -50,23 +50,23 @@ class Cartridge {
                         }
                         break;
                     case 1:
-                        this.romBankNumber &= ~0b11111;
-                        if ((value & 0b11111) == 0) {
-                            value |= 0b00001;
+                        this.romBankNumber &= 0x60;
+                        if ((value & 0x1f) == 0) {
+                            value |= 0x1;
                         }
-                        this.romBankNumber |= value & 0b11111;
+                        this.romBankNumber |= value & 0x1f;
                         this.romBankNumber %= (this.rom.length / 0x4000);
                         break;
                     case 2:
                         if (this.ramBankMode) {
                             if (this.hasRAM) {
-                                this.ramBankNumber = value & 0b11;
+                                this.ramBankNumber = value & 0x3;
                                 this.ramBankNumber %= (this.ram.length / 0x2000);
                             }
-                            this.romBankNumber &= ~0b1100000;
+                            this.romBankNumber &= 0x1f;
                         } else {
-                            this.romBankNumber &= ~0b1100000;
-                            this.romBankNumber |= (value & 0b11) << 5;
+                            this.romBankNumber &= 0x1f;
+                            this.romBankNumber |= (value & 0x3) << 5;
                             this.romBankNumber %= (this.rom.length / 0x4000);
                             if (this.hasRAM) {
                                 this.ramBankNumber = 0;
@@ -74,7 +74,7 @@ class Cartridge {
                         }
                         break;
                     case 3:
-                        this.ramBankMode = (value & 0b1) == 0b1;
+                        this.ramBankMode = (value & 0x1) != 0;
                         break;
                 }
                 break;
@@ -85,10 +85,10 @@ class Cartridge {
                         this.ramEnable = (value & 0xf) == 0xa;
                         break;
                     case 1:
-                        if ((value & 0b1111) == 0) {
-                            value |= 0b0001;
+                        if ((value & 0xf) == 0) {
+                            value |= 0x1;
                         }
-                        this.romBankNumber = value & 0b1111;
+                        this.romBankNumber = value & 0xf;
                         this.romBankNumber %= (this.rom.length / 0x4000);
                         break;
                 }
@@ -105,10 +105,10 @@ class Cartridge {
                         }
                         break;
                     case 1:
-                        if ((value & 0b1111111) == 0) {
-                            value |= 0b0000001;
+                        if ((value & 0x7f) == 0) {
+                            value |= 0x1;
                         }
-                        this.romBankNumber = value & 0b1111111;
+                        this.romBankNumber = value & 0x7f;
                         this.romBankNumber %= (this.rom.length / 0x4000);
                         break;
                     case 2:
@@ -154,19 +154,19 @@ class Cartridge {
                         }
                         break;
                     case 2:
-                        this.romBankNumber &= ~0b11111111;
+                        this.romBankNumber &= 0x100;
                         this.romBankNumber |= value;
                         this.romBankNumber %= (this.rom.length / 0x4000);
                         break;
                     case 3:
-                        this.romBankNumber &= ~0b100000000;
-                        this.romBankNumber |= (value & 0b1) << 8;
+                        this.romBankNumber &= 0xff;
+                        this.romBankNumber |= (value & 0x1) << 8;
                         this.romBankNumber %= (this.rom.length / 0x4000);
                         break;
                     case 4:
                     case 5:
                         if (this.hasRAM) {
-                            this.ramBankNumber = value & 0b1111;
+                            this.ramBankNumber = value & 0xf;
                             this.ramBankNumber %= (this.ram.length / 0x2000);
                         }
                         break;
