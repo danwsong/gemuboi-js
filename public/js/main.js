@@ -6,6 +6,9 @@ let running = false;
 let timeout;
 
 function update() {
+    if (paused || !running) {
+        return;
+    }
     timeout = null;
     if (gb.cartridge.hasRTC) {
         gb.cartridge.rtc.updateTime();
@@ -18,50 +21,45 @@ function update() {
     timeout = setTimeout(update, next - performance.now());
 }
 
-onbeforeunload = () => {
+addEventListener('beforeunload', () => {
     if (running) {
         gb.cartridge.save();
     }
-};
+});
 
-document.onvisibilitychange = () => {
-    if (document.hidden) {
-        if (timeout != null) {
-            clearTimeout(timeout);
+document.addEventListener('visibilitychange', () => {
+    if (running) {
+        if (document.hidden) {
             paused = true;
-        }
-    } else {
-        if (paused) {
+        } else {
             paused = false;
             next = performance.now();
             update();
         }
     }
-}
+});
 
 document.addEventListener('focus', () => {
     document.activeElement.blur();
 }, true);
 
-document.onclick = () => {
+document.addEventListener('click', () => {
     if (Sound.ctx.state != 'running') {
         Sound.ctx.resume();
     }
-}
+});
 
 const romInput = document.getElementById('romInput');
-romInput.onchange = () => {
+romInput.addEventListener('change', () => {
+    if (running) {
+        gb.cartridge.save();
+        running = false;
+    }
     const reader = new FileReader();
-    reader.readAsArrayBuffer(romInput.files[0]);
-    reader.onload = () => {
-        if (running) {
-            clearTimeout(timeout);
-            gb.cartridge.save();
-        }
+    reader.addEventListener('load', () => {
         gb = new GameBoy();
         try {
             gb.cartridge.load(new Uint8Array(reader.result));
-
             running = true;
             next = performance.now();
             cycles = 0;
@@ -69,10 +67,11 @@ romInput.onchange = () => {
         } catch (error) {
             console.log(error);
         }
-    };
-};
+    });
+    reader.readAsArrayBuffer(romInput.files[0]);
+});
 
-document.onkeydown = e => {
+document.addEventListener('keydown', e => {
     if (running) {
         switch (e.code) {
             case "Enter": gb.joypad.start = true; break;
@@ -85,9 +84,9 @@ document.onkeydown = e => {
             case "ArrowRight": gb.joypad.right = true; break;
         }
     }
-}
+});
 
-document.onkeyup = e => {
+document.addEventListener('keyup', e => {
     if (running) {
         switch (e.code) {
             case "Enter": gb.joypad.start = false; break;
@@ -100,4 +99,4 @@ document.onkeyup = e => {
             case "ArrowRight": gb.joypad.right = false; break;
         }
     }
-}
+});
