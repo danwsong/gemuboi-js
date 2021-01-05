@@ -21,12 +21,12 @@ class Serial {
     }
 
     get sc() {
-        return (this.transferRunning << 7) | this.useInternalClock;
+        return 0x7e | (this.transferRunning << 7) | this.useInternalClock;
     }
 
     set sc(value) {
-        this.transferTrigger = (value & 0b10000000) != 0;
-        this.useInternalClock = (value & 0b1) != 0;
+        this.transferTrigger = (value & 0x80) != 0;
+        this.useInternalClock = (value & 0x1) != 0;
     }
 
     cycle() {
@@ -44,7 +44,7 @@ class Serial {
                 if (this.useInternalClock) {
                     this.cycleCounter = Serial.cpuCyclesPerCycle;
                 }
-                this.sb = ((this.sb << 1) | 0b1) & 0xff;
+                this._sb = ((this._sb << 1) | 1) & 0xff;
                 this.cycles++;
                 if (this.cycles == 8) {
                     this.transferRunning = false;
