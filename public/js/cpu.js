@@ -39,10 +39,10 @@ class GameBoy {
     }
 
     set f(value) {
-        this.fz = (value & 0b10000000) != 0;
-        this.fn = (value & 0b01000000) != 0;
-        this.fh = (value & 0b00100000) != 0;
-        this.fc = (value & 0b00010000) != 0;
+        this.fz = (value & 0x80) != 0;
+        this.fn = (value & 0x40) != 0;
+        this.fh = (value & 0x20) != 0;
+        this.fc = (value & 0x10) != 0;
     }
 
     get bc() {
@@ -135,32 +135,26 @@ class GameBoy {
     }
 
     readAddress(address) {
-        switch (address >> 12) {
+        switch (address >> 13) {
             case 0x0:
             case 0x1:
             case 0x2:
             case 0x3:
-            case 0x4:
-            case 0x5:
-            case 0x6:
-            case 0x7:
                 return this.cartridge.readROM(address & 0x7fff);
-            case 0x8:
-            case 0x9:
+            case 0x4:
                 return this.display.vram[address & 0x1fff];
-            case 0xa:
-            case 0xb:
+            case 0x5:
                 return this.cartridge.readRAM(address & 0x1fff);
-            case 0xc:
-            case 0xd:
+            case 0x6:
                 return this.wram[address & 0x1fff];
-            case 0xe:
-            case 0xf:
-                if (address < 0xfe00) {
+            case 0x7:
+                if (address <= 0xfdff) {
                     return this.wram[address & 0x1fff];
-                } else if (address < 0xff00) {
+                } else if (address <= 0xfe9f) {
                     return this.display.oam[address & 0xff];
-                } else if (address < 0xff80) {
+                } else if (address <= 0xfeff) {
+                    return 0xff;
+                } else if (address <= 0xff7f) {
                     if (address >= 0xff10 && address <= 0xff3f) {
                         return this.sound.readAddress(address & 0xff);
                     } else {
@@ -184,10 +178,10 @@ class GameBoy {
                             case 0x49: return this.display.obp1;
                             case 0x4a: return this.display.wy;
                             case 0x4b: return this.display.wx;
-                            default: return 0x00;
+                            default: return 0xff;
                         }
                     }
-                } else if (address < 0xffff) {
+                } else if (address <= 0xfffe) {
                     return this.hram[address & 0x7f];
                 } else {
                     return this.ie;
@@ -196,32 +190,26 @@ class GameBoy {
     }
 
     writeAddress(address, value) {
-        switch (address >> 12) {
+        switch (address >> 13) {
             case 0x0:
             case 0x1:
             case 0x2:
             case 0x3:
-            case 0x4:
-            case 0x5:
-            case 0x6:
-            case 0x7:
                 this.cartridge.writeROM(address & 0x7fff, value); break;
-            case 0x8:
-            case 0x9:
+            case 0x4:
                 this.display.vram[address & 0x1fff] = value; break;
-            case 0xa:
-            case 0xb:
+            case 0x5:
                 this.cartridge.writeRAM(address & 0x1fff, value); break;
-            case 0xc:
-            case 0xd:
+            case 0x6:
                 this.wram[address & 0x1fff] = value; break;
-            case 0xe:
-            case 0xf:
-                if (address < 0xfe00) {
+            case 0x7:
+                if (address <= 0xfdff) {
                     this.wram[address & 0x1fff] = value;
-                } else if (address < 0xff00) {
+                } else if (address <= 0xfe9f) {
                     this.display.oam[address & 0xff] = value;
-                } else if (address < 0xff80) {
+                } else if (address <= 0xfeff) {
+                    
+                } else if (address <= 0xff7f) {
                     if (address >= 0xff10 && address <= 0xff3f) {
                         this.sound.writeAddress(address & 0xff, value);
                     } else {
@@ -248,100 +236,101 @@ class GameBoy {
                             default: break;
                         }
                     }
-                } else if (address < 0xffff) {
+                } else if (address <= 0xfffe) {
                     this.hram[address & 0x7f] = value;
                 } else {
                     this.ie = value;
                 }
+                break;
         }
     }
 
     readRegister(register) {
         switch (register) {
-            case 0b000: return this.b;
-            case 0b001: return this.c;
-            case 0b010: return this.d;
-            case 0b011: return this.e;
-            case 0b100: return this.h;
-            case 0b101: return this.l;
-            case 0b110: return this.readAddress(this.hl);
-            case 0b111: return this.a;
+            case 0: return this.b;
+            case 1: return this.c;
+            case 2: return this.d;
+            case 3: return this.e;
+            case 4: return this.h;
+            case 5: return this.l;
+            case 6: return this.readAddress(this.hl);
+            case 7: return this.a;
         }
     }
 
     writeRegister(register, value) {
         switch (register) {
-            case 0b000: this.b = value; break;
-            case 0b001: this.c = value; break;
-            case 0b010: this.d = value; break;
-            case 0b011: this.e = value; break;
-            case 0b100: this.h = value; break;
-            case 0b101: this.l = value; break;
-            case 0b110: this.writeAddress(this.hl, value); break;
-            case 0b111: this.a = value; break;
+            case 0: this.b = value; break;
+            case 1: this.c = value; break;
+            case 2: this.d = value; break;
+            case 3: this.e = value; break;
+            case 4: this.h = value; break;
+            case 5: this.l = value; break;
+            case 6: this.writeAddress(this.hl, value); break;
+            case 7: this.a = value; break;
         }
     }
 
     readDoubleRegisterIndirect(register) {
         switch (register) {
-            case 0b00: return this.readAddress(this.bc);
-            case 0b01: return this.readAddress(this.de);
-            case 0b10: return this.readAddress(this.hl++);
-            case 0b11: return this.readAddress(this.hl--);
+            case 0: return this.readAddress(this.bc);
+            case 1: return this.readAddress(this.de);
+            case 2: return this.readAddress(this.hl++);
+            case 3: return this.readAddress(this.hl--);
         }
     }
 
     writeDoubleRegisterIndirect(register, value) {
         switch (register) {
-            case 0b00: this.writeAddress(this.bc, value); break;
-            case 0b01: this.writeAddress(this.de, value); break;
-            case 0b10: this.writeAddress(this.hl++, value); break;
-            case 0b11: this.writeAddress(this.hl--, value); break;
+            case 0: this.writeAddress(this.bc, value); break;
+            case 1: this.writeAddress(this.de, value); break;
+            case 2: this.writeAddress(this.hl++, value); break;
+            case 3: this.writeAddress(this.hl--, value); break;
         }
     }
 
     readDoubleRegister(register) {
         switch (register) {
-            case 0b00: return this.bc;
-            case 0b01: return this.de;
-            case 0b10: return this.hl;
-            case 0b11: return this.sp;
+            case 0: return this.bc;
+            case 1: return this.de;
+            case 2: return this.hl;
+            case 3: return this.sp;
         }
     }
 
     writeDoubleRegister(register, value) {
         switch (register) {
-            case 0b00: this.bc = value; break;
-            case 0b01: this.de = value; break;
-            case 0b10: this.hl = value; break;
-            case 0b11: this.sp = value; break;
+            case 0: this.bc = value; break;
+            case 1: this.de = value; break;
+            case 2: this.hl = value; break;
+            case 3: this.sp = value; break;
         }
     }
 
     popDoubleRegister(register) {
         switch (register) {
-            case 0b00: this.c = this.readAddress(this.sp++); this.b = this.readAddress(this.sp++); break;
-            case 0b01: this.e = this.readAddress(this.sp++); this.d = this.readAddress(this.sp++); break;
-            case 0b10: this.l = this.readAddress(this.sp++); this.h = this.readAddress(this.sp++); break;
-            case 0b11: this.f = this.readAddress(this.sp++); this.a = this.readAddress(this.sp++); break;
+            case 0: this.c = this.readAddress(this.sp++); this.b = this.readAddress(this.sp++); break;
+            case 1: this.e = this.readAddress(this.sp++); this.d = this.readAddress(this.sp++); break;
+            case 2: this.l = this.readAddress(this.sp++); this.h = this.readAddress(this.sp++); break;
+            case 3: this.f = this.readAddress(this.sp++); this.a = this.readAddress(this.sp++); break;
         }
     }
 
     pushDoubleRegister(register) {
         switch (register) {
-            case 0b00: this.writeAddress(--this.sp, this.b); this.writeAddress(--this.sp, this.c); break;
-            case 0b01: this.writeAddress(--this.sp, this.d); this.writeAddress(--this.sp, this.e); break;
-            case 0b10: this.writeAddress(--this.sp, this.h); this.writeAddress(--this.sp, this.l); break;
-            case 0b11: this.writeAddress(--this.sp, this.a); this.writeAddress(--this.sp, this.f); break;
+            case 0: this.writeAddress(--this.sp, this.b); this.writeAddress(--this.sp, this.c); break;
+            case 1: this.writeAddress(--this.sp, this.d); this.writeAddress(--this.sp, this.e); break;
+            case 2: this.writeAddress(--this.sp, this.h); this.writeAddress(--this.sp, this.l); break;
+            case 3: this.writeAddress(--this.sp, this.a); this.writeAddress(--this.sp, this.f); break;
         }
     }
 
     readCondition(condition) {
         switch (condition) {
-            case 0b00: return !this.fz;
-            case 0b01: return this.fz;
-            case 0b10: return !this.fc;
-            case 0b11: return this.fc;
+            case 0: return !this.fz;
+            case 1: return this.fz;
+            case 2: return !this.fc;
+            case 3: return this.fc;
         }
     }
 
@@ -403,105 +392,103 @@ class GameBoy {
     decode() {
         const instr = this.readAddress(this.pc++);
         this.cycles += GameBoy.instrCycles[instr];
-        const quad = instr >> 6;
-        const ops = instr & 0b111111;
-        const op1 = ops >> 3, op2 = ops & 0b111;
-        if (quad === 0b00) {
-            if (op2 == 0b110) {
+        const quad = instr >> 6, op1 = (instr & 0x3f) >> 3, op2 = instr & 0x7;
+        if (quad === 0) {
+            if (op2 == 6) {
                 // LD r, n
                 const imm = this.readAddress(this.pc++);
                 this.writeRegister(op1, imm);
-            } else if (op2 == 0b010) {
-                if ((op1 & 0b1) == 0b1) {
+            } else if (op2 == 2) {
+                if ((op1 & 0x1) != 0) {
                     // LD A, (rr)
                     this.a = this.readDoubleRegisterIndirect(op1 >> 1);
                 } else {
                     // LD (rr), A
                     this.writeDoubleRegisterIndirect(op1 >> 1, this.a);
                 }
-            } else if ((op1 & 0b1) == 0b0 && op2 == 0b001) {
+            } else if ((op1 & 0x1) == 0 && op2 == 1) {
                 // LD dd, nn
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.writeDoubleRegister(op1 >> 1, (imm2 << 8) | imm1);
-            } else if (op1 == 0b001 && op2 == 0b000) {
+            } else if (op1 == 1 && op2 == 0) {
                 // LD (nn), SP
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 let address = (imm2 << 8) | imm1;
                 this.writeAddress(address++, this.spl);
                 this.writeAddress(address++, this.sph);
-            } else if (op2 == 0b100) {
+            } else if (op2 == 4) {
                 // INC r
                 const tmp = (this.readRegister(op1) + 1) & 0xff;
                 this.writeRegister(op1, tmp);
                 this.fh = (tmp & 0xf) == 0;
                 this.fn = false;
                 this.fz = tmp == 0;
-            } else if (op2 == 0b101) {
+            } else if (op2 == 5) {
                 // DEC r
                 const tmp = (this.readRegister(op1) - 1) & 0xff;
                 this.writeRegister(op1, tmp);
                 this.fh = (tmp & 0xf) == 0xf;
                 this.fn = true;
                 this.fz = tmp == 0;
-            } else if ((op1 & 0b1) == 0b1 && op2 == 0b001) {
+            } else if ((op1 & 0x1) != 0 && op2 == 1) {
                 // ADD HL, ss
                 const ss = this.readDoubleRegister(op1 >> 1);
                 this.fc = this.hl + ss > 0xffff;
                 this.fh = (this.hl & 0xfff) + (ss & 0xfff) > 0xfff;
                 this.fn = false;
                 this.hl += ss;
-            } else if ((op1 & 0b1) == 0b0 && op2 == 0b011) {
+            } else if ((op1 & 0x1) == 0 && op2 == 3) {
                 // INC ss
                 this.writeDoubleRegister(op1 >> 1, this.readDoubleRegister(op1 >> 1) + 1);
-            } else if ((op1 & 0b1) == 0b1 && op2 == 0b011) {
+            } else if ((op1 & 0x1) != 0 && op2 == 3) {
                 // DEC ss
                 this.writeDoubleRegister(op1 >> 1, this.readDoubleRegister(op1 >> 1) - 1);
-            } else if (op1 == 0b000 && op2 == 0b111) {
+            } else if (op1 == 0 && op2 == 7) {
                 // RLCA
-                const carry = this.a & 0b10000000;
+                const carry = this.a & 0x80;
                 this.a = ((this.a << 1) | (carry >> 7)) & 0xff;
                 this.fc = carry != 0;
                 this.fh = false;
                 this.fn = false;
                 this.fz = false;
-            } else if (op1 == 0b001 && op2 == 0b111) {
+            } else if (op1 == 1 && op2 == 7) {
                 // RRCA
-                const carry = this.a & 0b1;
+                const carry = this.a & 0x1;
                 this.a = ((carry << 7) | (this.a >> 1)) & 0xff;
                 this.fc = carry != 0;
                 this.fh = false;
                 this.fn = false;
                 this.fz = false;
-            } else if (op1 == 0b010 && op2 == 0b111) {
+            } else if (op1 == 2 && op2 == 7) {
                 // RLA
-                const carry = this.a & 0b10000000;
+                const carry = this.a & 0x80;
                 this.a = ((this.a << 1) | this.fc) & 0xff;
                 this.fc = carry != 0;
                 this.fh = false;
                 this.fn = false;
                 this.fz = false;
-            } else if (op1 == 0b011 && op2 == 0b111) {
+            } else if (op1 == 3 && op2 == 7) {
                 // RRA
-                const carry = this.a & 0b1;
+                const carry = this.a & 0x1;
                 this.a = ((this.fc << 7) | (this.a >> 1)) & 0xff;
                 this.fc = carry != 0;
                 this.fh = false;
                 this.fn = false;
                 this.fz = false;
-            } else if (op1 == 0b011 && op2 == 0b000) {
+            } else if (op1 == 3 && op2 == 0) {
                 // JR e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
                 this.pc += offset;
-            } else if ((op1 & 0b100) == 0b100 && op2 == 0b000) {
+            } else if ((op1 & 0x4) != 0 && op2 == 0) {
                 // JR cc, e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
-                if (this.readCondition(op1 & 0b11)) {
+                if (this.readCondition(op1 & 0x3)) {
                     this.pc += offset;
                     this.cycles += 1;
                 }
-            } else if (op1 == 0b100 && op2 == 0b111) {
+            } else if (op1 == 4 && op2 == 7) {
                 // DAA
                 let tmp = this.a;
                 if (!this.fn) {
@@ -523,40 +510,38 @@ class GameBoy {
                 this.fh = false;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b101 && op2 == 0b111) {
+            } else if (op1 == 5 && op2 == 7) {
                 // CPL
                 this.a ^= 0xff;
                 this.fh = true;
                 this.fn = true;
-            } else if (op1 == 0b000 && op2 == 0b000) {
+            } else if (op1 == 0 && op2 == 0) {
                 // NOP
-            } else if (op1 == 0b110 && op2 == 0b111) {
+            } else if (op1 == 6 && op2 == 7) {
                 // SCF
                 this.fc = true;
                 this.fh = false;
                 this.fn = false;
-            } else if (op1 == 0b111 && op2 == 0b111) {
+            } else if (op1 == 7 && op2 == 7) {
                 // CCF
                 this.fc = !this.fc;
                 this.fh = false;
                 this.fn = false;
-            } else if (op1 == 0b010 && op2 == 0b000) {
+            } else if (op1 == 2 && op2 == 0) {
                 // STOP
-
-            } else {
-                throw 'unknown instruction: 0x' + instr.toString(16);
+                this.pc++;
             }
-        } else if (quad === 0b01) {
-            if (op1 != 0b110 || op2 != 0b110) {
+        } else if (quad === 1) {
+            if (op1 != 6 || op2 != 6) {
                 // LD r, r'
                 this.writeRegister(op1, this.readRegister(op2));
             } else {
                 // HALT
                 this.halt = true;
             }
-        } else if (quad === 0b10) {
+        } else if (quad === 2) {
             const r = this.readRegister(op2);
-            if (op1 == 0b000) {
+            if (op1 == 0) {
                 // ADD A, r
                 const tmp = this.a + r;
                 this.fc = tmp > 0xff;
@@ -564,7 +549,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b001) {
+            } else if (op1 == 1) {
                 // ADC A, r
                 const carry = this.fc;
                 const tmp = this.a + r + carry;
@@ -573,7 +558,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b010) {
+            } else if (op1 == 2) {
                 // SUB A, r
                 const tmp = this.a - r;
                 this.fc = tmp < 0;
@@ -581,7 +566,7 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b011) {
+            } else if (op1 == 3) {
                 // SBC A, r
                 const carry = this.fc
                 const tmp = this.a - r - carry;
@@ -590,7 +575,7 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b100) {
+            } else if (op1 == 4) {
                 // AND A, r
                 const tmp = this.a & r;
                 this.fc = false;
@@ -598,7 +583,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b101) {
+            } else if (op1 == 5) {
                 // XOR A, r
                 const tmp = this.a ^ r;
                 this.fc = false;
@@ -606,7 +591,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b110) {
+            } else if (op1 == 6) {
                 // OR A, r
                 const tmp = this.a | r;
                 this.a |= r;
@@ -615,7 +600,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b111) {
+            } else if (op1 == 7) {
                 // CP A, r
                 const tmp = this.a - r;
                 this.fc = tmp < 0;
@@ -623,41 +608,41 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
             }
-        } else if (quad === 0b11) {
-            if (op1 == 0b110 && op2 == 0b010) {
+        } else if (quad === 3) {
+            if (op1 == 6 && op2 == 2) {
                 // LD A, (C)
                 this.a = this.readAddress(0xff00 | this.c);
-            } else if (op1 == 0b100 && op2 == 0b010) {
+            } else if (op1 == 4 && op2 == 2) {
                 // LD (C), A
                 this.writeAddress(0xff00 | this.c, this.a);
-            } else if (op1 == 0b110 && op2 == 0b000) {
+            } else if (op1 == 6 && op2 == 0) {
                 // LD A, (n)
                 const imm = this.readAddress(this.pc++);
                 this.a = this.readAddress(0xff00 | imm);
-            } else if (op1 == 0b100 && op2 == 0b000) {
+            } else if (op1 == 4 && op2 == 0) {
                 // LD (n), A
                 const imm = this.readAddress(this.pc++);
                 this.writeAddress(0xff00 | imm, this.a);
-            } else if (op1 == 0b111 && op2 == 0b010) {
+            } else if (op1 == 7 && op2 == 2) {
                 // LD A, (nn)
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.a = this.readAddress((imm2 << 8) | imm1);
-            } else if (op1 == 0b101 && op2 == 0b010) {
+            } else if (op1 == 5 && op2 == 2) {
                 // LD (nn), A
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.writeAddress((imm2 << 8) | imm1, this.a);
-            } else if (op1 == 0b111 && op2 == 0b001) {
+            } else if (op1 == 7 && op2 == 1) {
                 // LD SP, HL
                 this.sp = this.hl;
-            } else if ((op1 & 0b1) == 0b0 && op2 == 0b101) {
+            } else if ((op1 & 0x1) == 0 && op2 == 5) {
                 // PUSH qq
                 this.pushDoubleRegister(op1 >> 1);
-            } else if ((op1 & 0b1) == 0b0 && op2 == 0b001) {
+            } else if ((op1 & 0x1) == 0 && op2 == 1) {
                 // POP qq
                 this.popDoubleRegister(op1 >> 1);
-            } else if (op1 == 0b111 && op2 == 0b000) {
+            } else if (op1 == 7 && op2 == 0) {
                 // LDHL SP, e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
                 const tmp = this.sp + offset;
@@ -666,7 +651,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = false;
                 this.hl = tmp;
-            } else if (op1 == 0b101 && op2 == 0b000) {
+            } else if (op1 == 5 && op2 == 0) {
                 // ADD SP, e
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
                 const tmp = this.sp + offset;
@@ -675,7 +660,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = false;
                 this.sp = tmp;
-            } else if (op1 == 0b000 && op2 == 0b110) {
+            } else if (op1 == 0 && op2 == 6) {
                 // ADD A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a + imm
@@ -684,7 +669,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b001 && op2 == 0b110) {
+            } else if (op1 == 1 && op2 == 6) {
                 // ADC A, n
                 const imm = this.readAddress(this.pc++);
                 const carry = this.fc;
@@ -694,7 +679,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b010 && op2 == 0b110) {
+            } else if (op1 == 2 && op2 == 6) {
                 // SUB A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a - imm;
@@ -703,7 +688,7 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b011 && op2 == 0b110) {
+            } else if (op1 == 3 && op2 == 6) {
                 // SBC A, n
                 const imm = this.readAddress(this.pc++);
                 const carry = this.fc;
@@ -713,7 +698,7 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
                 this.a = tmp & 0xff;
-            } else if (op1 == 0b100 && op2 == 0b110) {
+            } else if (op1 == 4 && op2 == 6) {
                 // AND A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a & imm;
@@ -722,7 +707,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b101 && op2 == 0b110) {
+            } else if (op1 == 5 && op2 == 6) {
                 // XOR A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a ^ imm;
@@ -731,7 +716,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b110 && op2 == 0b110) {
+            } else if (op1 == 6 && op2 == 6) {
                 // OR A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a | imm;
@@ -740,7 +725,7 @@ class GameBoy {
                 this.fn = false;
                 this.fz = tmp == 0;
                 this.a = tmp;
-            } else if (op1 == 0b111 && op2 == 0b110) {
+            } else if (op1 == 7 && op2 == 6) {
                 // CP A, n
                 const imm = this.readAddress(this.pc++);
                 const tmp = this.a - imm;
@@ -748,65 +733,68 @@ class GameBoy {
                 this.fh = (this.a & 0xf) - (imm & 0xf) < 0;
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
-            } else if (op1 == 0b001 && op2 == 0b011) {
+            } else if (op1 == 1 && op2 == 3) {
                 this.decode_cb();
-            } else if (op1 == 0b000 && op2 == 0b011) {
+            } else if (op1 == 0 && op2 == 3) {
                 // JP nn
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.pc = (imm2 << 8) | imm1;
-            } else if ((op1 & 0b100) == 0b000 && op2 == 0b010) {
+            } else if ((op1 & 0x4) == 0 && op2 == 2) {
                 // JP cc, nn
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
-                if (this.readCondition(op1 & 0b11)) {
+                if (this.readCondition(op1 & 0x3)) {
                     this.pc = (imm2 << 8) | imm1;
                     this.cycles += 1;
                 }
-            } else if (op1 == 0b101 && op2 == 0b001) {
+            } else if (op1 == 5 && op2 == 1) {
                 // JP HL
                 this.pc = this.hl;
-            } else if (op1 == 0b001 && op2 == 0b101) {
+            } else if (op1 == 1 && op2 == 5) {
                 // CALL nn
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
                 this.writeAddress(--this.sp, this.pch);
                 this.writeAddress(--this.sp, this.pcl);
                 this.pc = (imm2 << 8) | imm1;
-            } else if ((op1 & 0b100) == 0b000 && op2 == 0b100) {
+            } else if ((op1 & 0x4) == 0 && op2 == 4) {
                 // CALL cc, nn
                 const imm1 = this.readAddress(this.pc++);
                 const imm2 = this.readAddress(this.pc++);
-                if (this.readCondition(op1 & 0b11)) {
+                if (this.readCondition(op1 & 0x3)) {
                     this.writeAddress(--this.sp, this.pch);
                     this.writeAddress(--this.sp, this.pcl);
                     this.pc = (imm2 << 8) | imm1;
                     this.cycles += 3;
                 }
-            } else if (op1 == 0b001 && op2 == 0b001) {
+            } else if (op1 == 1 && op2 == 1) {
                 // RET
                 this.pc = this.readAddress(this.sp++);
                 this.pc |= this.readAddress(this.sp++) << 8;
-            } else if (op1 == 0b011 && op2 == 0b001) {
+            } else if (op1 == 3 && op2 == 1) {
                 // RETI
                 this.pc = this.readAddress(this.sp++);
                 this.pc |= this.readAddress(this.sp++) << 8;
                 this.ime = true;
-            } else if ((op1 & 0b100) == 0b000 && op2 == 0b000) {
+            } else if ((op1 & 0x4) == 0 && op2 == 0) {
                 // RET cc
-                if (this.readCondition(op1 & 0b11)) {
+                if (this.readCondition(op1 & 0x3)) {
                     this.pc = this.readAddress(this.sp++);
                     this.pc |= this.readAddress(this.sp++) << 8;
                     this.cycles += 3;
                 }
-            } else if (op2 == 0b111) {
+            } else if (op2 == 7) {
                 // RST t
                 this.writeAddress(--this.sp, this.pch);
                 this.writeAddress(--this.sp, this.pcl);
                 this.pc = op1 << 3;
-            } else if ((op1 & 0b110) == 0b110 && op2 == 0b011) {
-                // DI/EI
-                this.ime = (op1 & 0b1) != 0;
+            } else if (op1 == 6 && op2 == 3) {
+                // DI
+                this.ime = false;
+            } else if (op1 == 7 && op2 == 3) {
+                // EI
+                this.ime = true;
             } else {
                 throw 'unknown instruction: 0x' + instr.toString(16);
             }
@@ -816,66 +804,64 @@ class GameBoy {
     decode_cb() {
         const instr = this.readAddress(this.pc++);
         this.cycles += GameBoy.cbInstrCycles[instr];
-        const quad = instr >> 6;
-        const ops = instr & 0b111111;
-        const op1 = ops >> 3, op2 = ops & 0b111;
-        if (quad == 0b00) {
+        const quad = instr >> 6, op1 = (instr & 0x3f) >> 3, op2 = instr & 0x7;
+        if (quad == 0) {
             const r = this.readRegister(op2);
-            if (op1 == 0b000) {
+            if (op1 == 0) {
                 // RLC r
-                const carry = r & 0b10000000;
+                const carry = r & 0x80;
                 const tmp = ((r << 1) | (carry >> 7)) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b001) {
+            } else if (op1 == 1) {
                 // RRC r
-                const carry = r & 0b1;
+                const carry = r & 0x1;
                 const tmp = ((carry << 7) | (r >> 1)) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b010) {
+            } else if (op1 == 2) {
                 // RL r
-                const carry = r & 0b10000000;
+                const carry = r & 0x80;
                 const tmp = ((r << 1) | this.fc) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b011) {
+            } else if (op1 == 3) {
                 // RR r
-                const carry = r & 0b1;
+                const carry = r & 0x1;
                 const tmp = ((this.fc << 7) | (r >> 1)) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b100) {
+            } else if (op1 == 4) {
                 // SLA r
-                const carry = r & 0b10000000;
+                const carry = r & 0x80;
                 const tmp = (r << 1) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b101) {
+            } else if (op1 == 5) {
                 // SRA r
-                const carry = r & 0b1;
-                const tmp = ((r & 0b10000000) | (r >> 1)) & 0xff;
+                const carry = r & 0x1;
+                const tmp = ((r & 0x80) | (r >> 1)) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b110) {
+            } else if (op1 == 6) {
                 // SWAP r
                 const tmp = ((r << 4) | (r >> 4)) & 0xff;
                 this.writeRegister(op2, tmp);
@@ -883,9 +869,9 @@ class GameBoy {
                 this.fh = 0;
                 this.fn = 0;
                 this.fz = tmp == 0;
-            } else if (op1 == 0b111) {
+            } else if (op1 == 7) {
                 // SRL r
-                const carry = r & 0b1;
+                const carry = r & 0x1;
                 const tmp = (r >> 1) & 0xff;
                 this.writeRegister(op2, tmp);
                 this.fc = carry != 0;
@@ -893,15 +879,15 @@ class GameBoy {
                 this.fn = 0;
                 this.fz = tmp == 0;
             }
-        } else if (quad == 0b01) {
+        } else if (quad == 1) {
             // BIT b, r
             this.fh = true;
             this.fn = false;
             this.fz = (this.readRegister(op2) & (1 << op1)) == 0;
-        } else if (quad == 0b10) {
+        } else if (quad == 2) {
             // RES b, r
             this.writeRegister(op2, this.readRegister(op2) & ~(1 << op1))
-        } else if (quad == 0b11) {
+        } else if (quad == 3) {
             // SET b, r
             this.writeRegister(op2, this.readRegister(op2) | (1 << op1))
         }
@@ -944,9 +930,9 @@ GameBoy.cbInstrCycles = [
     2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
     2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
 ];
-GameBoy.joypadInterrupt = 0b00010000;
-GameBoy.serialInterrupt = 0b00001000;
-GameBoy.timerInterrupt = 0b00000100;
-GameBoy.statInterrupt = 0b00000010;
-GameBoy.vblankInterrupt = 0b00000001;
-GameBoy.interrupts = 0b00011111;
+GameBoy.joypadInterrupt = 0x10;
+GameBoy.serialInterrupt = 0x8;
+GameBoy.timerInterrupt = 0x4;
+GameBoy.statInterrupt = 0x2;
+GameBoy.vblankInterrupt = 0x1;
+GameBoy.interrupts = 0x1f;
