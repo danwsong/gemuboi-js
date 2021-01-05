@@ -17,7 +17,7 @@ class Sound {
         this.soundEnable = false;
 
         this.gainNode = Sound.ctx.createGain();
-        this.gainNode.gain.value = 0.25;
+        this.gainNode.gain.value = Sound.volume;
         this.gainNode.connect(Sound.ctx.destination);
 
         this.buffer = Sound.ctx.createBuffer(2, Sound.bufferSamples, Sound.sampleFrequency);
@@ -193,10 +193,10 @@ class Sound {
     }
 
     set nr50(value) {
-        this.outputVinRight = (value & 0b10000000) != 0;
-        this.rightVolume = (value & 0b1110000) >> 4;
-        this.outputVinLeft = (value & 0b1000) != 0;
-        this.leftVolume = value & 0b111;
+        this.outputVinRight = (value & 0x80) != 0;
+        this.rightVolume = (value & 0x70) >> 4;
+        this.outputVinLeft = (value & 0x8) != 0;
+        this.leftVolume = value & 0x7;
     }
 
     get nr51() {
@@ -204,14 +204,14 @@ class Sound {
     }
 
     set nr51(value) {
-        this.channel4RightEnable = (value & 0b10000000) != 0;
-        this.channel3RightEnable = (value & 0b1000000) != 0;
-        this.channel2RightEnable = (value & 0b100000) != 0;
-        this.channel1RightEnable = (value & 0b10000) != 0;
-        this.channel4LeftEnable = (value & 0b1000) != 0;
-        this.channel3LeftEnable = (value & 0b100) != 0;
-        this.channel2LeftEnable = (value & 0b10) != 0;
-        this.channel1LeftEnable = (value & 0b1) != 0;
+        this.channel4RightEnable = (value & 0x80) != 0;
+        this.channel3RightEnable = (value & 0x40) != 0;
+        this.channel2RightEnable = (value & 0x20) != 0;
+        this.channel1RightEnable = (value & 0x10) != 0;
+        this.channel4LeftEnable = (value & 0x8) != 0;
+        this.channel3LeftEnable = (value & 0x4) != 0;
+        this.channel2LeftEnable = (value & 0x2) != 0;
+        this.channel1LeftEnable = (value & 0x1) != 0;
     }
 
     get nr52() {
@@ -219,7 +219,7 @@ class Sound {
     }
 
     set nr52(value) {
-        this.soundEnable = (value & 0b10000000) != 0;
+        this.soundEnable = (value & 0x80) != 0;
         if (!this.soundEnable) {
             this.clearState();
         }
@@ -301,6 +301,7 @@ class Sound {
     }
 
     clearState() {
+        this.frame = 0;
         this.channel1Enable = false;
         this.channel2Enable = false;
         this.channel3Enable = false;
@@ -354,7 +355,7 @@ class Sound {
         const tmp = ((this.channel4LFSR & 0x2) >> 1) ^ (this.channel4LFSR & 0x1);
         this.channel4LFSR = (tmp << 14) | (this.channel4LFSR >> 1);
         if (this.channel4CounterStep) {
-            this.channel4LFSR = (this.channel4LFSR & ~0x40) | (tmp << 6);
+            this.channel4LFSR = (this.channel4LFSR & 0x7fbf) | (tmp << 6);
         }
     }
 
@@ -608,6 +609,7 @@ class Sound {
     }
 
     cycle() {
+        this.cycles += Sound.cyclesPerCPUCycle;
         if (this.soundEnable) {
             if (this.cycles % Sound.cyclesPerSample == 0) {
                 this.updateTrigger();
@@ -633,7 +635,6 @@ class Sound {
                 }
             }
         }
-        this.cycles += Sound.cyclesPerCPUCycle;
     }
 }
 Sound.frequency = 4194304;
@@ -646,6 +647,7 @@ Sound.bufferSamples = 4096;
 Sound.sampleFrequency = 65536;
 Sound.bufferDuration = Sound.bufferSamples / Sound.sampleFrequency;
 Sound.latency = 0.125;
+Sound.volume = 0.25;
 Sound.frameFrequency = 512;
 Sound.cyclesPerFrame = Sound.frequency / Sound.frameFrequency;
 Sound.cyclesPerSample = Sound.frequency / Sound.sampleFrequency;
