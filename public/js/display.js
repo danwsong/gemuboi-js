@@ -16,7 +16,7 @@ class Display {
         this.mode01Int = false;
         this.mode00Int = false;
         this.lycMatch = false;
-        this.mode = 0b00;
+        this.mode = 0;
 
         this.scy = 0;
         this.scx = 0;
@@ -29,8 +29,8 @@ class Display {
         this._obp0 = 0;
         this._obp1 = 0;
 
-        this.bgPalette = [0b00, 0b00, 0b00, 0b00];
-        this.objPalette = [[0b00, 0b00, 0b00, 0b00], [0b00, 0b00, 0b00, 0b00]];
+        this.bgPalette = [0, 0, 0, 0];
+        this.objPalette = [[0, 0, 0, 0], [0, 0, 0, 0]];
 
         this.wy = 0;
         this.wx = 0;
@@ -39,7 +39,7 @@ class Display {
         this.windowLine = 0;
 
         this.vram = new Uint8Array(0x2000);
-        this.oam = new Uint8Array(0xA0);
+        this.oam = new Uint8Array(0xa0);
 
         this.imageData = Display.ctx.createImageData(Display.canvasWidth, Display.canvasHeight);
         this.pixels = new Uint32Array(this.imageData.data.buffer);
@@ -50,35 +50,37 @@ class Display {
     }
 
     set lcdc(value) {
-        this.lcdOn = (value & 0b10000000) != 0;
-        this.windowTilemap = (value & 0b01000000) != 0;
-        this.windowOn = (value & 0b00100000) != 0;
-        this.bgWindowTileMode = (value & 0b00010000) != 0;
-        this.bgTilemap = (value & 0b00001000) != 0;
-        this.objHeight = (value & 0b00000100) != 0;
-        this.objOn = (value & 0b00000010) != 0;
-        this.bgOn = (value & 0b00000001) != 0;
+        this.lcdOn = (value & 0x80) != 0;
+        this.windowTilemap = (value & 0x40) != 0;
+        this.windowOn = (value & 0x20) != 0;
+        this.bgWindowTileMode = (value & 0x10) != 0;
+        this.bgTilemap = (value & 0x8) != 0;
+        this.objHeight = (value & 0x4) != 0;
+        this.objOn = (value & 0x2) != 0;
+        this.bgOn = (value & 0x1) != 0;
     }
 
     get stat() {
-        return (this.lycMatchInt << 6) | (this.mode10Int << 5) | (this.mode01Int << 4) | (this.mode00Int << 3) | (this.lycMatch << 2) | this.mode;
+        return 0x80 | (this.lycMatchInt << 6) | (this.mode10Int << 5) | (this.mode01Int << 4) | (this.mode00Int << 3) | (this.lycMatch << 2) | this.mode;
     }
 
     set stat(value) {
-        this.lycMatchInt = (value & 0b01000000) != 0;
-        this.mode10Int = (value & 0b00100000) != 0;
-        this.mode01Int = (value & 0b00010000) != 0;
-        this.mode00Int = (value & 0b00001000) != 0;
-    }
-
-    get dma() {
-
+        this.lycMatchInt = (value & 0x40) != 0;
+        this.mode10Int = (value & 0x20) != 0;
+        this.mode01Int = (value & 0x10) != 0;
+        this.mode00Int = (value & 0x8) != 0;
     }
 
     set dma(value) {
-        const h = value << 8;
-        for (let l = 0; l < this.oam.length; l++) {
-            this.oam[l] = this.gb.readAddress(h | l)
+        switch (value >> 5) {
+            case 0x4:
+            case 0x5:
+            case 0x6:
+                const h = value << 8;
+                for (let l = 0; l < this.oam.length; l++) {
+                    this.oam[l] = this.gb.readAddress(h | l)
+                }
+                break;
         }
     }
 
@@ -88,7 +90,7 @@ class Display {
 
     set bgp(value) {
         this._bgp = value;
-        this.bgPalette = [value & 0b11, (value >> 2) & 0b11, (value >> 4) & 0b11, (value >> 6) & 0b11];
+        this.bgPalette = [value & 0x3, (value >> 2) & 0x3, (value >> 4) & 0x3, (value >> 6) & 0x3];
     }
 
     get obp0() {
@@ -97,7 +99,7 @@ class Display {
 
     set obp0(value) {
         this._obp0 = value;
-        this.objPalette[0] = [value & 0b11, (value >> 2) & 0b11, (value >> 4) & 0b11, (value >> 6) & 0b11];
+        this.objPalette[0] = [value & 0x3, (value >> 2) & 0x3, (value >> 4) & 0x3, (value >> 6) & 0x3];
     }
 
     get obp1() {
@@ -106,7 +108,7 @@ class Display {
 
     set obp1(value) {
         this._obp1 = value;
-        this.objPalette[1] = [value & 0b11, (value >> 2) & 0b11, (value >> 4) & 0b11, (value >> 6) & 0b11];
+        this.objPalette[1] = [value & 0x3, (value >> 2) & 0x3, (value >> 4) & 0x3, (value >> 6) & 0x3];
     }
 
     writePixel(y, x, value) {
@@ -118,36 +120,36 @@ class Display {
         for (let x = 0; x < Display.width; x++) {
             if (this.bgOn) {
                 if (this.windowOn && this.ly >= this.wy && x >= this.wx - 7) {
-                    const tilemapY = (this.windowLine >> 3) & 0b11111;
-                    const tilemapX = ((x - (this.wx - 7)) >> 3) & 0b11111;
+                    const tilemapY = (this.windowLine >> 3) & 0x1f;
+                    const tilemapX = ((x - (this.wx - 7)) >> 3) & 0x1f;
                     const tilemapAddress = (this.windowTilemap ? 0x1c00 : 0x1800) | (tilemapY << 5) | tilemapX;
 
                     let tile = this.vram[tilemapAddress];
                     if (!this.bgWindowTileMode && tile < 0x80) {
                         tile += 0x100;
                     }
-                    const tileY = this.windowLine & 0b111;
+                    const tileY = this.windowLine & 0x7;
                     const tileAddress = (tile << 4) | (tileY << 1);
 
-                    const tileX = (x - (this.wx - 7)) & 0b111;
-                    const palette = (((this.vram[tileAddress + 1] << tileX) & 0b10000000) >> 6) | (((this.vram[tileAddress] << tileX) & 0b10000000) >> 7);
+                    const tileX = (x - (this.wx - 7)) & 0x7;
+                    const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
                     bg[x] = palette;
                     this.writePixel(this.ly, x, this.bgPalette[palette]);
                 } else {
-                    const tilemapY = ((this.ly + this.scy) >> 3) & 0b11111;
-                    const tilemapX = ((x + this.scx) >> 3) & 0b11111;
+                    const tilemapY = ((this.ly + this.scy) >> 3) & 0x1f;
+                    const tilemapX = ((x + this.scx) >> 3) & 0x1f;
                     const tilemapAddress = (this.bgTilemap ? 0x1c00 : 0x1800) | (tilemapY << 5) | tilemapX;
 
                     let tile = this.vram[tilemapAddress];
                     if (!this.bgWindowTileMode && tile < 0x80) {
                         tile += 0x100;
                     }
-                    const tileY = (this.ly + this.scy) & 0b111;
+                    const tileY = (this.ly + this.scy) & 0x7;
                     const tileAddress = (tile << 4) | (tileY << 1);
 
-                    const tileX = (x + this.scx) & 0b111;
-                    const palette = (((this.vram[tileAddress | 0b1] << tileX) & 0b10000000) >> 6) | (((this.vram[tileAddress] << tileX) & 0b10000000) >> 7);
+                    const tileX = (x + this.scx) & 0x7;
+                    const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
                     bg[x] = palette;
                     this.writePixel(this.ly, x, this.bgPalette[palette]);
@@ -180,10 +182,10 @@ class Display {
                 const objX = this.oam[obj * 4 + 1] - 8;
                 const tile = this.oam[obj * 4 + 2] & (this.objHeight ? 0xfe : 0xff);
                 const attr = this.oam[obj * 4 + 3];
-                const priority = (attr & 0b10000000) != 0;
-                const yFlip = (attr & 0b1000000) != 0;
-                const xFlip = (attr & 0b100000) != 0;
-                const paletteNumber = (attr & 0b10000) >> 4;
+                const priority = (attr & 0x80) != 0;
+                const yFlip = (attr & 0x40) != 0;
+                const xFlip = (attr & 0x20) != 0;
+                const paletteNumber = (attr & 0x10) >> 4;
 
                 if (objX > -8 && objX < Display.width) {
                     let tileY = this.ly - objY;
@@ -197,9 +199,9 @@ class Display {
                         if (xFlip) {
                             tileX = 7 - tileX;
                         }
-                        const palette = (((this.vram[tileAddress + 1] << tileX) & 0b10000000) >> 6) | (((this.vram[tileAddress] << tileX) & 0b10000000) >> 7);
+                        const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
-                        if (palette != 0b00 && (!priority || bg[x] == 0b00)) {
+                        if (palette != 0 && (!priority || bg[x] == 0)) {
                             this.writePixel(this.ly, x, this.objPalette[paletteNumber][palette]);
                         }
                     }
@@ -277,10 +279,10 @@ Display.palette = [
     0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000,
 ];
 Display.modes = {
-    hblank: 0b00,
-    vblank: 0b01,
-    searchOAM: 0b10,
-    transfer: 0b11,
+    hblank: 0,
+    vblank: 1,
+    searchOAM: 2,
+    transfer: 3,
 }
 Display.canvasMargin = 16;
 Display.canvasWidth = Display.width + 2 * Display.canvasMargin;
