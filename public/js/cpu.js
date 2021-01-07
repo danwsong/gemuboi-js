@@ -28,8 +28,6 @@ class GameBoy {
         this._if = 0;
         this._ie = 0;
 
-        this.cycles = 0;
-
         this.wram = new Uint8Array(0x2000);
         this.hram = new Uint8Array(0x7f);
     }
@@ -335,8 +333,6 @@ class GameBoy {
     }
 
     cycle() {
-        this.cycles = 0;
-
         if ((this.ime || this.halt) && (this.ie & this.if) != 0) {
             this.halt = false;
             if (this.ime) {
@@ -360,38 +356,22 @@ class GameBoy {
             }
         }
 
-        if (this.halt) {
-            this.cycles += 1;
-        } else {
-            this.decode();
-        }
+        const cycles = this.halt ? 1 : this.decode();
 
-        let displayCycles = this.cycles;
-        while (displayCycles-- > 0) {
+        let hardwareCycles = cycles;
+        while (hardwareCycles-- > 0) {
             this.display.cycle();
-        }
-
-        let timerCycles = this.cycles;
-        while (timerCycles-- > 0) {
             this.timer.cycle();
-        }
-
-        let soundCycles = this.cycles;
-        while (soundCycles-- > 0) {
             this.sound.cycle();
-        }
-
-        let serialCycles = this.cycles;
-        while (serialCycles-- > 0) {
             this.serial.cycle();
         }
 
-        return this.cycles;
+        return cycles;
     }
 
     decode() {
         const instr = this.readAddress(this.pc++);
-        this.cycles += GameBoy.instrCycles[instr];
+        let cycles = GameBoy.instrCycles[instr];
         const quad = instr >> 6, op1 = (instr & 0x3f) >> 3, op2 = instr & 0x7;
         if (quad === 0) {
             if (op2 == 6) {
@@ -486,7 +466,7 @@ class GameBoy {
                 const offset = this.readAddress(this.pc++) << 24 >> 24;
                 if (this.readCondition(op1 & 0x3)) {
                     this.pc += offset;
-                    this.cycles += 1;
+                    cycles += 1;
                 }
             } else if (op1 == 4 && op2 == 7) {
                 // DAA
@@ -734,7 +714,7 @@ class GameBoy {
                 this.fn = true;
                 this.fz = (tmp & 0xff) == 0;
             } else if (op1 == 1 && op2 == 3) {
-                this.decode_cb();
+                cycles += this.decode_cb();
             } else if (op1 == 0 && op2 == 3) {
                 // JP nn
                 const imm1 = this.readAddress(this.pc++);
@@ -746,7 +726,7 @@ class GameBoy {
                 const imm2 = this.readAddress(this.pc++);
                 if (this.readCondition(op1 & 0x3)) {
                     this.pc = (imm2 << 8) | imm1;
-                    this.cycles += 1;
+                    cycles += 1;
                 }
             } else if (op1 == 5 && op2 == 1) {
                 // JP HL
@@ -766,7 +746,7 @@ class GameBoy {
                     this.writeAddress(--this.sp, this.pch);
                     this.writeAddress(--this.sp, this.pcl);
                     this.pc = (imm2 << 8) | imm1;
-                    this.cycles += 3;
+                    cycles += 3;
                 }
             } else if (op1 == 1 && op2 == 1) {
                 // RET
@@ -782,7 +762,7 @@ class GameBoy {
                 if (this.readCondition(op1 & 0x3)) {
                     this.pc = this.readAddress(this.sp++);
                     this.pc |= this.readAddress(this.sp++) << 8;
-                    this.cycles += 3;
+                    cycles += 3;
                 }
             } else if (op2 == 7) {
                 // RST t
@@ -799,11 +779,12 @@ class GameBoy {
                 throw 'unknown instruction: 0x' + instr.toString(16);
             }
         }
+        return cycles;
     }
 
     decode_cb() {
         const instr = this.readAddress(this.pc++);
-        this.cycles += GameBoy.cbInstrCycles[instr];
+        let cycles = GameBoy.cbInstrCycles[instr];
         const quad = instr >> 6, op1 = (instr & 0x3f) >> 3, op2 = instr & 0x7;
         if (quad == 0) {
             const r = this.readRegister(op2);
@@ -891,6 +872,7 @@ class GameBoy {
             // SET b, r
             this.writeRegister(op2, this.readRegister(op2) | (1 << op1))
         }
+        return cycles;
     }
 }
 GameBoy.frequency = 1048576;
