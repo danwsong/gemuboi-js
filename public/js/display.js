@@ -43,6 +43,7 @@ class Display {
 
         this.imageData = Display.ctx.createImageData(Display.canvasWidth, Display.canvasHeight);
         this.pixels = new Uint32Array(this.imageData.data.buffer);
+        this.bgClear = new Uint8Array(Display.width);
     }
 
     get lcdc() {
@@ -111,12 +112,8 @@ class Display {
         this.objPalette[1] = [value & 0x3, (value >> 2) & 0x3, (value >> 4) & 0x3, (value >> 6) & 0x3];
     }
 
-    writePixel(y, x, value) {
-        this.pixels[(y + Display.canvasMargin) * Display.canvasWidth + (x + Display.canvasMargin)] = Display.palette[value];
-    }
-
     renderLine() {
-        const bg = new Uint8Array(Display.width);
+        const address = (this.ly + Display.canvasMargin) * Display.canvasWidth + Display.canvasMargin;
         for (let x = 0; x < Display.width; x++) {
             if (this.bgOn) {
                 if (this.windowOn && this.ly >= this.wy && x >= this.wx - 7) {
@@ -134,8 +131,8 @@ class Display {
                     const tileX = (x - (this.wx - 7)) & 0x7;
                     const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
-                    bg[x] = palette;
-                    this.writePixel(this.ly, x, this.bgPalette[palette]);
+                    this.bgClear[x] = palette;
+                    this.pixels[address + x] = Display.palette[this.bgPalette[palette]];
                 } else {
                     const tilemapY = ((this.ly + this.scy) >> 3) & 0x1f;
                     const tilemapX = ((x + this.scx) >> 3) & 0x1f;
@@ -151,15 +148,14 @@ class Display {
                     const tileX = (x + this.scx) & 0x7;
                     const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
-                    bg[x] = palette;
-                    this.writePixel(this.ly, x, this.bgPalette[palette]);
+                    this.bgClear[x] = palette;
+                    this.pixels[address + x] = Display.palette[this.bgPalette[palette]];
                 }
             } else {
-                bg[x] = 0;
-                this.writePixel(this.ly, x, 0);
+                this.bgClear[x] = 0;
+                this.pixels[address + x] = 0xffffffff;
             }
         }
-
         if (this.objOn) {
             const objs = [];
             for (let obj = 0; obj < 40 && objs.length < 10; obj++) {
@@ -201,8 +197,8 @@ class Display {
                         }
                         const palette = (((this.vram[tileAddress + 1] << tileX) & 0x80) >> 6) | (((this.vram[tileAddress] << tileX) & 0x80) >> 7);
 
-                        if (palette != 0 && (!priority || bg[x] == 0)) {
-                            this.writePixel(this.ly, x, this.objPalette[paletteNumber][palette]);
+                        if (palette != 0 && (!priority || this.bgClear[x] == 0)) {
+                            this.pixels[address + x] = Display.palette[this.objPalette[paletteNumber][palette]];
                         }
                     }
                 }
