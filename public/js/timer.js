@@ -68,20 +68,22 @@ class Timer {
 
     cycle() {
         if (this.overflow) {
-            this._div = (this._div + 4) & 0xffff;
+            this._div = (this._div + Timer.cyclesPerCPUCycle) & 0xffff;
             this.overflow = false;
             this._tima = this._tma;
             this.gb.requestInterrupt(GameBoy.timerInterrupt);
         } else if (this.timerEnable && this.tacBit) {
-            this._div = (this._div + 4) & 0xffff;
+            this._div = (this._div + Timer.cyclesPerCPUCycle) & 0xffff;
             if (!this.tacBit) {
                 this.timaIncrement();
             }
         } else {
-            this._div = (this._div + 4) & 0xffff;
+            this._div = (this._div + Timer.cyclesPerCPUCycle) & 0xffff;
         }
     }
 }
 Timer.tacBits = [
     0x200, 0x8, 0x20, 0x80,
 ];
+Timer.frequency = 4194304
+Timer.cyclesPerCPUCycle = Timer.frequency / GameBoy.frequency;

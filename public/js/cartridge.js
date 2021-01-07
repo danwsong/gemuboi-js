@@ -290,6 +290,12 @@ class Cartridge {
     load(file) {
         this.title = new TextDecoder('ascii').decode(file.slice(0x134, 0x144));
 
+        const gbc = file[0x143];
+        if ((gbc & 0x80) != 0) {
+            this.gb.gbc = true;
+            this.gb.a = 0x11;
+        }
+
         this.cartridgeType = file[0x147];
         switch (this.cartridgeType) {
             case 0x09:

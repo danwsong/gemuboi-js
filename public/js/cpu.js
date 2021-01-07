@@ -28,12 +28,20 @@ class GameBoy {
         this._if = 0;
         this._ie = 0;
 
-        this.wram = new Uint8Array(0x2000);
+        this._svbk = 0;
+
+        this.doubleSpeed = false;
+        this.speedTrigger = false;
+
+        this.wram = new Uint8Array(0x8000);
         this.hram = new Uint8Array(0x7f);
+
+        this.gbc = false;
+        this.cycles = 0;
     }
 
     get f() {
-        return (this.fz << 7) | (this.fn << 6) | (this.fh << 5) | (this.fc << 4);
+        return 0xf | (this.fz << 7) | (this.fn << 6) | (this.fh << 5) | (this.fc << 4);
     }
 
     set f(value) {
@@ -102,6 +110,34 @@ class GameBoy {
         this._pc = value & 0xffff;
     }
 
+    get svbk() {
+        if (!this.gbc) {
+            return 0xff;
+        }
+        return 0xf8 | this._svbk;
+    }
+
+    set svbk(value) {
+        if (!this.gbc) {
+            return;
+        }
+        this._svbk = value & 0x7;
+    }
+
+    get key1() {
+        if (!this.gbc) {
+            return 0xff;
+        }
+        return 0x7e | (this.doubleSpeed << 7) | this.speedTrigger;
+    }
+
+    set key1(value) {
+        if (!this.gbc) {
+            return;
+        }
+        this.speedTrigger = (value & 0x1) != 0;
+    }
+
     get if() {
         return this._if;
     }
@@ -132,6 +168,24 @@ class GameBoy {
         this.pc = address;
     }
 
+    readWRAM(address) {
+        switch (address >> 12) {
+            case 0:
+                return this.wram[address];
+            case 1:
+                return this.wram[((this._svbk == 0 ? 1 : this._svbk) << 12) | (address & 0xfff)];
+        }
+    }
+
+    writeWRAM(address, value) {
+        switch (address >> 12) {
+            case 0:
+                this.wram[address] = value; break;
+            case 1:
+                this.wram[((this._svbk == 0 ? 1 : this._svbk) << 12) | (address & 0xfff)] = value; break;
+        }
+    }
+
     readAddress(address) {
         switch (address >> 13) {
             case 0x0:
@@ -140,14 +194,14 @@ class GameBoy {
             case 0x3:
                 return this.cartridge.readROM(address & 0x7fff);
             case 0x4:
-                return this.display.vram[address & 0x1fff];
+                return this.display.readVRAM(address & 0x1fff);
             case 0x5:
                 return this.cartridge.readRAM(address & 0x1fff);
             case 0x6:
-                return this.wram[address & 0x1fff];
+                return this.readWRAM(address & 0x1fff);
             case 0x7:
                 if (address <= 0xfdff) {
-                    return this.wram[address & 0x1fff];
+                    return this.readWRAM(address & 0x1fff);
                 } else if (address <= 0xfe9f) {
                     return this.display.oam[address & 0xff];
                 } else if (address <= 0xfeff) {
@@ -176,7 +230,15 @@ class GameBoy {
                             case 0x49: return this.display.obp1;
                             case 0x4a: return this.display.wy;
                             case 0x4b: return this.display.wx;
-                            default: return 0xff;
+                            case 0x4d: return this.key1;
+                            case 0x4f: return this.display.vbk;
+                            case 0x55: return this.display.hdma5;
+                            case 0x68: return this.display.bcps;
+                            case 0x69: return this.display.bcpd;
+                            case 0x6a: return this.display.ocps;
+                            case 0x6b: return this.display.ocpd;
+                            case 0x70: return this.svbk;
+                            default: console.log('read 0x' + address.toString(16)); return 0xff;
                         }
                     }
                 } else if (address <= 0xfffe) {
@@ -195,18 +257,18 @@ class GameBoy {
             case 0x3:
                 this.cartridge.writeROM(address & 0x7fff, value); break;
             case 0x4:
-                this.display.vram[address & 0x1fff] = value; break;
+                this.display.writeVRAM(address & 0x1fff, value); break;
             case 0x5:
                 this.cartridge.writeRAM(address & 0x1fff, value); break;
             case 0x6:
-                this.wram[address & 0x1fff] = value; break;
+                this.writeWRAM(address & 0x1fff, value); break;
             case 0x7:
                 if (address <= 0xfdff) {
-                    this.wram[address & 0x1fff] = value;
+                    this.writeWRAM(address & 0x1fff, value);
                 } else if (address <= 0xfe9f) {
                     this.display.oam[address & 0xff] = value;
                 } else if (address <= 0xfeff) {
-                    
+
                 } else if (address <= 0xff7f) {
                     if (address >= 0xff10 && address <= 0xff3f) {
                         this.sound.writeAddress(address & 0xff, value);
@@ -231,7 +293,19 @@ class GameBoy {
                             case 0x49: this.display.obp1 = value; break;
                             case 0x4a: this.display.wy = value; break;
                             case 0x4b: this.display.wx = value; break;
-                            default: break;
+                            case 0x4d: this.key1 = value; break;
+                            case 0x4f: this.display.vbk = value; break;
+                            case 0x51: this.display.hdma1 = value; break;
+                            case 0x52: this.display.hdma2 = value; break;
+                            case 0x53: this.display.hdma3 = value; break;
+                            case 0x54: this.display.hdma4 = value; break;
+                            case 0x55: this.display.hdma5 = value; break;
+                            case 0x68: this.display.bcps = value; break;
+                            case 0x69: this.display.bcpd = value; break;
+                            case 0x6a: this.display.ocps = value; break;
+                            case 0x6b: this.display.ocpd = value; break;
+                            case 0x70: this.svbk = value; break;
+                            default: console.log('write 0x' + address.toString(16) + ': ' + value.toString(16)); break;
                         }
                     }
                 } else if (address <= 0xfffe) {
@@ -332,6 +406,21 @@ class GameBoy {
         }
     }
 
+    runHdma() {
+        this.writeAddress(0x8000 | this.display.hdmaDst++, this.readAddress(this.display.hdmaSrc++));
+        if ((this.display.hdmaDst & 0xf) == 0) {
+            this.display.hdmaCounter--;
+            if (this.display.hdmaCounter == 0) {
+                this.display.hdmaOn = false;
+                this.display.hblankHdmaOn = false;
+                this.display.hdmaTrigger = false;
+            }
+            if (this.display.hblankHdmaOn) {
+                this.display.hdmaOn = false;
+            }
+        }
+    }
+
     cycle() {
         if ((this.ime || this.halt) && (this.ie & this.if) != 0) {
             this.halt = false;
@@ -356,17 +445,30 @@ class GameBoy {
             }
         }
 
-        const cycles = this.halt ? 1 : this.decode();
+        const cycles = (this.halt || this.display.hdmaOn) ? 1 : this.decode();
 
         let hardwareCycles = cycles;
         while (hardwareCycles-- > 0) {
-            this.display.cycle();
             this.timer.cycle();
-            this.sound.cycle();
             this.serial.cycle();
         }
 
-        return cycles;
+        this.cycles += cycles / (this.doubleSpeed ? 2 : 1);
+        while (this.cycles > 0) {
+            if (this.display.hdmaOn) {
+                this.runHdma();
+            }
+            this.display.cycle();
+            this.sound.cycle();
+            this.cycles--;
+        }
+
+        if (this.display.hdmaTrigger) {
+            this.display.hdmaTrigger = false;
+            this.display.hdmaOn = true;
+        }
+
+        return cycles / (this.doubleSpeed ? 2 : 1);
     }
 
     decode() {
@@ -510,6 +612,10 @@ class GameBoy {
             } else if (op1 == 2 && op2 == 0) {
                 // STOP
                 this.pc++;
+                if (this.speedTrigger) {
+                    this.speedTrigger = false;
+                    this.doubleSpeed = !this.doubleSpeed;
+                }
             }
         } else if (quad === 1) {
             if (op1 != 6 || op2 != 6) {

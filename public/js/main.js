@@ -14,7 +14,13 @@ function update() {
         gb.cartridge.rtc.updateTime();
     }
     while (cycles < Display.cpuCyclesPerFrame) {
-        cycles += gb.cycle();
+        try {
+            cycles += gb.cycle();
+        } catch (error) {
+            console.log(error);
+            running = false;
+            return;
+        }
     }
     cycles -= Display.cpuCyclesPerFrame;
     next += Display.frameInterval;
