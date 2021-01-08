@@ -33,6 +33,9 @@ class GameBoy {
         this.doubleSpeed = false;
         this.speedTrigger = false;
 
+        this.irReadEnable = 0;
+        this.irOn = false;
+
         this.wram = new Uint8Array(0x8000);
         this.hram = new Uint8Array(0x7f);
 
@@ -138,6 +141,21 @@ class GameBoy {
         this.speedTrigger = (value & 0x1) != 0;
     }
 
+    get rp() {
+        if (!this.gbc) {
+            return 0xff;
+        }
+        return 0x3c | (this.irReadEnable << 6) | (!(this.irReadEnable && this.irOn) << 1) | this.irOn;
+    }
+
+    set rp(value) {
+        if (!this.gbc) {
+            return;
+        }
+        this.irReadEnable = (value & 0xc0) >> 6;
+        this.irOn = (value & 0x1) != 0;
+    }
+
     get if() {
         return this._if;
     }
@@ -233,12 +251,13 @@ class GameBoy {
                             case 0x4d: return this.key1;
                             case 0x4f: return this.display.vbk;
                             case 0x55: return this.display.hdma5;
+                            case 0x56: return this.rp;
                             case 0x68: return this.display.bcps;
                             case 0x69: return this.display.bcpd;
                             case 0x6a: return this.display.ocps;
                             case 0x6b: return this.display.ocpd;
                             case 0x70: return this.svbk;
-                            default: console.log('read 0x' + address.toString(16)); return 0xff;
+                            default: return 0xff;
                         }
                     }
                 } else if (address <= 0xfffe) {
@@ -300,12 +319,13 @@ class GameBoy {
                             case 0x53: this.display.hdma3 = value; break;
                             case 0x54: this.display.hdma4 = value; break;
                             case 0x55: this.display.hdma5 = value; break;
+                            case 0x56: this.rp = value; break;
                             case 0x68: this.display.bcps = value; break;
                             case 0x69: this.display.bcpd = value; break;
                             case 0x6a: this.display.ocps = value; break;
                             case 0x6b: this.display.ocpd = value; break;
                             case 0x70: this.svbk = value; break;
-                            default: console.log('write 0x' + address.toString(16) + ': ' + value.toString(16)); break;
+                            default: break;
                         }
                     }
                 } else if (address <= 0xfffe) {
