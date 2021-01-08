@@ -381,6 +381,9 @@ class Cartridge {
                     case 0x04:
                         this.ram = new Uint8Array(0x20000);
                         break;
+                    case 0x05:
+                        this.ram = new Uint8Array(0x10000);
+                        break;
                     default:
                         throw 'unknown RAM size: 0x' + ramSize.toString(16);
                 }
