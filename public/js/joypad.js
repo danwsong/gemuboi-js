@@ -2,8 +2,7 @@ class Joypad {
     constructor(gb) {
         this.gb = gb;
 
-        this.button = false;
-        this.direction = false;
+        this._p1 = 0;
 
         this.start = false;
         this.select = false;
@@ -17,18 +16,19 @@ class Joypad {
     }
 
     get p1() {
-        let _p1 = (!this.button << 5) | (!this.direction << 4);
-        if (this.button) {
-            _p1 |= (this.start << 3) | (this.select << 2) | (this.b << 1) | this.a;
+        switch (this._p1) {
+            case 0:
+                return 0xc0 | (!(this.start || this.down) << 3) | (!(this.select || this.up) << 2) | (!(this.b || this.left) << 1) | !(this.a || this.right);
+            case 1:
+                return 0xd0 | (!this.start << 3) | (!this.select << 2) | (!this.b << 1) | !this.a;
+            case 2:
+                return 0xe0 | (!this.down << 3) | (!this.up << 2) | (!this.left << 1) | !this.right;
+            case 3:
+                return 0xff;
         }
-        if (this.direction) {
-            _p1 |= (this.down << 3) | (this.up << 2) | (this.left << 1) | this.right;
-        }
-        return 0xc0 | (_p1 ^ 0x3f);
     }
 
     set p1(value) {
-        this.button = (value & 0x20) == 0;
-        this.direction = (value & 0x10) == 0;
+        this._p1 = (value & 0x30) >> 4;
     }
 }
