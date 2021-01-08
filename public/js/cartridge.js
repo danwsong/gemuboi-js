@@ -25,6 +25,7 @@ class Cartridge {
             case 0x1c:
             case 0x1d:
             case 0x1e:
+            case 0xff:
                 switch (address >> 14) {
                     case 0:
                         return this.rom[address & 0x3fff];
@@ -172,6 +173,21 @@ class Cartridge {
                         break;
                 }
                 break;
+            case 0xff:
+                switch (address >> 13) {
+                    case 0:
+                        this.irSelect = value == 0xe;
+                        break;
+                    case 1:
+                        this.romBankNumber = value & 0x3f;
+                        this.romBankNumber %= (this.rom.length / 0x4000);
+                        break;
+                    case 2:
+                        this.ramBankNumber = value & 0x3;
+                        this.ramBankNumber %= (this.ram.length / 0x2000);
+                        break;
+                }
+                break;
         }
     }
 
@@ -222,6 +238,12 @@ class Cartridge {
                 case 0x1d:
                 case 0x1e:
                     return this.ram[(this.ramBankNumber << 13) | address];
+                case 0xff:
+                    if (this.irSelect) {
+                        return this.irOn ? 0xc0 : 0xff;
+                    } else {
+                        return this.ram[(this.ramBankNumber << 13) | address];
+                    }
             }
         }
         return 0xff;
@@ -283,6 +305,14 @@ class Cartridge {
                 case 0x1d:
                 case 0x1e:
                     this.ram[(this.ramBankNumber << 13) | address] = value;
+                    break;
+                case 0xff:
+                    if (this.irSelect) {
+                        this.irOn = (value & 0x1) != 0;
+                    } else {
+                        this.ram[(this.ramBankNumber << 13) | address] = value;
+                    }
+                    break;
             }
         }
     }
@@ -354,6 +384,13 @@ class Cartridge {
             case 0x19:
                 this.rom = file;
                 this.romBankNumber = 1;
+                break;
+            case 0xff:
+                this.rom = file;
+                this.romBankNumber = 1;
+                this.ramEnable = true;
+                this.hasRAM = true;
+                this.hasBattery = true;
                 break;
             default:
                 throw 'unknown cartridge type: 0x' + this.cartridgeType.toString(16);
