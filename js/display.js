@@ -132,42 +132,42 @@ class Display {
     }
 
     set hdma1(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.hdmaSrc = (value << 8) | (this.hdmaSrc & 0x00ff);
     }
 
     set hdma2(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.hdmaSrc = (this.hdmaSrc & 0xff00) | (value & 0xf0);
     }
 
     set hdma3(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.hdmaDst = ((value & 0x1f) << 8) | (this.hdmaDst & 0x00ff);
     }
 
     set hdma4(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.hdmaDst = (this.hdmaDst & 0xff00) | (value & 0xf0);
     }
 
     get hdma5() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return ((!this.hdmaOn && !this.hblankHdmaOn) << 7) | ((this.hdmaCounter - 1) & 0x7f);
     }
 
     set hdma5(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         if ((value & 0x80) == 0 && this.hblankHdmaOn) {
@@ -184,14 +184,14 @@ class Display {
     }
 
     get bcps() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return 0x40 | (this.bgColorInc << 7) | this.bgColorIndex;
     }
 
     set bcps(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.bgColorInc = (value & 0x80) != 0;
@@ -199,14 +199,14 @@ class Display {
     }
 
     get bcpd() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return this._bcpd[this.bgColorIndex];
     }
 
     set bcpd(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this._bcpd[this.bgColorIndex] = value;
@@ -221,14 +221,14 @@ class Display {
     }
 
     get ocps() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return 0x40 | (this.objColorInc << 7) | this.objColorIndex;
     }
 
     set ocps(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this.objColorInc = (value & 0x80) != 0;
@@ -236,14 +236,14 @@ class Display {
     }
 
     get ocpd() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return this._ocpd[this.objColorIndex];
     }
 
     set ocpd(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this._ocpd[this.objColorIndex] = value;
@@ -258,14 +258,14 @@ class Display {
     }
 
     get vbk() {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return 0xff;
         }
         return 0xfe | this._vbk;
     }
 
     set vbk(value) {
-        if (!this.gb.gbc) {
+        if (!this.gb.cgb) {
             return;
         }
         this._vbk = value & 0x1;
@@ -513,7 +513,7 @@ class Display {
                         this.gb.requestInterrupt(GameBoy.statInterrupt);
                     }
                     this.mode = Display.modes.hblank;
-                    if (this.gb.gbc) {
+                    if (this.gb.cgb) {
                         this.renderLineColor();
                     } else {
                         this.renderLine();
@@ -544,9 +544,6 @@ class Display {
                     this.windowLine = 0;
                 }
             }
-        } else {
-            this.ly = 0;
-            this.mode = Display.modes.hblank;
         }
     }
 }

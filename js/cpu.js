@@ -39,12 +39,12 @@ class GameBoy {
         this.wram = new Uint8Array(0x8000);
         this.hram = new Uint8Array(0x7f);
 
-        this.gbc = false;
+        this.cgb = false;
         this.cycles = 0;
     }
 
     get f() {
-        return 0xf | (this.fz << 7) | (this.fn << 6) | (this.fh << 5) | (this.fc << 4);
+        return (this.fz << 7) | (this.fn << 6) | (this.fh << 5) | (this.fc << 4);
     }
 
     set f(value) {
@@ -114,42 +114,42 @@ class GameBoy {
     }
 
     get svbk() {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return 0xff;
         }
         return 0xf8 | this._svbk;
     }
 
     set svbk(value) {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return;
         }
         this._svbk = value & 0x7;
     }
 
     get key1() {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return 0xff;
         }
         return 0x7e | (this.doubleSpeed << 7) | this.speedTrigger;
     }
 
     set key1(value) {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return;
         }
         this.speedTrigger = (value & 0x1) != 0;
     }
 
     get rp() {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return 0xff;
         }
         return 0x3c | (this.irReadEnable << 6) | (!(this.irReadEnable && this.irOn) << 1) | this.irOn;
     }
 
     set rp(value) {
-        if (!this.gbc) {
+        if (!this.cgb) {
             return;
         }
         this.irReadEnable = (value & 0xc0) >> 6;
@@ -157,7 +157,7 @@ class GameBoy {
     }
 
     get if() {
-        return this._if;
+        return 0xe0 | this._if;
     }
 
     set if(value) {
@@ -442,6 +442,7 @@ class GameBoy {
     }
 
     cycle() {
+        let cycles = 0;
         if ((this.ime || this.halt) && (this.ie & this.if) != 0) {
             this.halt = false;
             if (this.ime) {
@@ -462,15 +463,17 @@ class GameBoy {
                     this.clearInterrupt(GameBoy.joypadInterrupt);
                     this.callInterrupt(0x0060);
                 }
+                cycles += 5;
             }
+        } else {
+            cycles += (this.halt || this.display.hdmaOn) ? 1 : this.decode();
         }
 
-        const cycles = (this.halt || this.display.hdmaOn) ? 1 : this.decode();
-
         let hardwareCycles = cycles;
-        while (hardwareCycles-- > 0) {
+        while (hardwareCycles > 0) {
             this.timer.cycle();
             this.serial.cycle();
+            hardwareCycles--;
         }
 
         this.cycles += cycles / (this.doubleSpeed ? 2 : 1);
