@@ -17,10 +17,6 @@ class RTC {
         this.highLatch = 0;
     }
 
-    get latch() {
-        
-    }
-
     set latch(value) {
         const _latch = (value & 0x1) != 0;
         if (!this._latch && _latch) {
