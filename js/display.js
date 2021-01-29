@@ -62,6 +62,8 @@ class Display {
         this.cycles = 0;
         this.windowLine = 0;
 
+        this.statInterrupt = false;
+
         this.vram = new Uint8Array(0x4000);
         this.oam = new Uint8Array(0xa0);
 
@@ -494,24 +496,15 @@ class Display {
     cycle() {
         if (this.lcdOn) {
             this.lycMatch = this.ly == this.lyc;
-            if (this.lycMatch && this.lycMatchInt && this.cycles == 0) {
-                this.gb.requestInterrupt(GameBoy.statInterrupt);
-            }
 
             if (this.ly < Display.height) {
                 if (this.cycles == 0) {
-                    if (this.mode10Int) {
-                        this.gb.requestInterrupt(GameBoy.statInterrupt);
-                    }
                     this.mode = Display.modes.searchOAM;
                 }
                 if (this.cycles == 80) {
                     this.mode = Display.modes.transfer;
                 }
                 if (this.cycles == 248) {
-                    if (this.mode00Int) {
-                        this.gb.requestInterrupt(GameBoy.statInterrupt);
-                    }
                     this.mode = Display.modes.hblank;
                     if (this.gb.cgb) {
                         this.renderLineColor();
@@ -524,12 +517,15 @@ class Display {
                 }
             }
             if (this.ly == Display.height && this.cycles == 0) {
-                if (this.mode01Int) {
-                    this.gb.requestInterrupt(GameBoy.statInterrupt);
-                }
                 this.gb.requestInterrupt(GameBoy.vblankInterrupt);
                 this.mode = Display.modes.vblank;
                 this.renderFrame();
+            }
+
+            const _statInterrupt = this.statInterrupt;
+            this.statInterrupt = (this.lycMatchInt && this.lycMatch) || (this.mode10Int && this.mode == Display.modes.searchOAM) || (this.mode01Int && this.mode == Display.modes.vblank) || (this.mode00Int && this.mode == Display.modes.hblank);
+            if (!_statInterrupt && this.statInterrupt) {
+                this.gb.requestInterrupt(GameBoy.statInterrupt);
             }
 
             this.cycles += Display.cyclesPerCPUCycle;
@@ -544,6 +540,11 @@ class Display {
                     this.windowLine = 0;
                 }
             }
+        } else {
+            this.cycles = 0;
+            this.ly = 0;
+            this.lycMatch = false;
+            this.mode = Display.modes.hblank;
         }
     }
 }
