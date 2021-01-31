@@ -466,10 +466,7 @@ class GameBoy {
                 cycles += 5;
             }
         } else {
-            if (!this.halt && !this.display.hdmaOn) {
-                this.decode();
-            }
-            cycles += 1;
+            cycles += (this.halt || this.display.hdmaOn) ? 1 : this.decode();
         }
 
         let hardwareCycles = cycles;
