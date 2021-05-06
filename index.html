@@ -26,9 +26,13 @@
                                         style="image-rendering: crisp-edges; image-rendering: pixelated;"></canvas>
                                 </div>
                                 <div class="container my-3 px-0">
-                                    <label for="romInput" class="btn btn-dark w-100">Select ROM</label>
+                                    <label for="startDemoButton" class="btn btn-dark w-100">Start Demo</label>
                                 </div>
-                                <input type="file" id="romInput" accept=".gb, .gbc" class="d-none" />
+                                <div class="container my-3 px-0">
+                                    <label for="romFileInput" class="btn btn-dark w-100">Select ROM</label>
+                                </div>
+                                <input type="button" id="startDemoButton" class="d-none" />
+                                <input type="file" id="romFileInput" accept=".gb, .gbc" class="d-none" />
                             </div>
                             <div class="col-md">
                                 <div class="accordion my-3" id="controlAccordion">

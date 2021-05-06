@@ -17,7 +17,7 @@ function update() {
         try {
             cycles += gb.cycle();
         } catch (error) {
-            console.log(error);
+            console.error(error);
             running = false;
             return;
         }
@@ -25,6 +25,19 @@ function update() {
     cycles -= Display.cpuCyclesPerFrame;
     next += Display.frameInterval;
     timeout = setTimeout(update, next - performance.now());
+}
+
+function loadAndStart(rom) {
+    gb = new GameBoy();
+    try {
+        gb.cartridge.load(rom);
+        running = true;
+        next = performance.now();
+        cycles = 0;
+        update();
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 addEventListener('beforeunload', () => {
@@ -55,31 +68,37 @@ document.addEventListener('click', () => {
     }
 });
 
-const romInput = document.getElementById('romInput');
-romInput.addEventListener('change', () => {
+const romFileInput = document.getElementById('romFileInput');
+romFileInput.addEventListener('change', () => {
     if (running) {
         gb.cartridge.save();
         running = false;
     }
     const reader = new FileReader();
     reader.addEventListener('load', () => {
-        gb = new GameBoy();
-        try {
-            gb.cartridge.load(new Uint8Array(reader.result));
-            running = true;
-            next = performance.now();
-            cycles = 0;
-            update();
-        } catch (error) {
-            console.log(error);
-        }
+        loadAndStart(new Uint8Array(reader.result));
     });
-    reader.readAsArrayBuffer(romInput.files[0]);
+    reader.readAsArrayBuffer(romFileInput.files[0]);
 });
 
-document.addEventListener('keydown', e => {
+const startDemoButton = document.getElementById('startDemoButton');
+startDemoButton.addEventListener('click', () => {
+    const xhr = new XMLHttpRequest();
+    xhr.responseType = 'arraybuffer';
+    xhr.addEventListener('readystatechange', () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status >= 200 && xhr.status < 299) {
+                loadAndStart(new Uint8Array(xhr.response));
+            }
+        }
+    });
+    xhr.open('GET', '/static/pocket.gb');
+    xhr.send();
+});
+
+document.addEventListener('keydown', (ev) => {
     if (running) {
-        switch (e.code) {
+        switch (ev.code) {
             case "Enter": gb.joypad.start = true; break;
             case "ShiftRight": gb.joypad.select = true; break;
             case "KeyZ": gb.joypad.b = true; break;
@@ -92,9 +111,9 @@ document.addEventListener('keydown', e => {
     }
 });
 
-document.addEventListener('keyup', e => {
+document.addEventListener('keyup', (ev) => {
     if (running) {
-        switch (e.code) {
+        switch (ev.code) {
             case "Enter": gb.joypad.start = false; break;
             case "ShiftRight": gb.joypad.select = false; break;
             case "KeyZ": gb.joypad.b = false; break;
