@@ -3,13 +3,11 @@ let cycles;
 let next;
 let paused = false;
 let running = false;
-let timeout;
 
 function update() {
     if (paused || !running) {
         return;
     }
-    timeout = null;
     if (gb.cartridge.hasRTC) {
         gb.cartridge.rtc.updateTime();
     }
@@ -24,7 +22,7 @@ function update() {
     }
     cycles -= Display.cpuCyclesPerFrame;
     next += Display.frameInterval;
-    timeout = setTimeout(update, next - performance.now());
+    setTimeout(update, next - performance.now());
 }
 
 function loadAndStart(rom) {
